@@ -1,0 +1,23 @@
+directories:
+  output: dist
+  buildResources: assets
+files:
+  - filter:
+      - dashboard/**/*
+      - dashboard/main.js
+      - dashboard/preload.js
+      - dashboard/public/**/*
+      - backend/**/*
+extraMetadata:
+  main: dashboard/main.js
+appId: com.myapp.desktop
+asar: false
+productName: My Electron App
+win:
+  target: nsis
+mac:
+  target: dmg
+linux:
+  target: AppImage
+extends: react-cra
+electronVersion: 32.2.0
