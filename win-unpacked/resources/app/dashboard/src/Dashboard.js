@@ -14,7 +14,6 @@ import {
 } from 'chart.js';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
-import sankey from 'highcharts/modules/sankey';
 import treemap from 'highcharts/modules/treemap';
 import heatmap from 'highcharts/modules/heatmap';
 import 'chartjs-plugin-datalabels';
@@ -22,7 +21,6 @@ import Settings from './Settings';
 
 // Register Highcharts modules
 heatmap(Highcharts);
-sankey(Highcharts);
 treemap(Highcharts);
 
 // Register chart.js elements
@@ -62,7 +60,6 @@ const Dashboard = ({ insidenList = [] }) => {
         sbuBar: true,
         categoryBar: true,
         radarChart: true,
-        sankeyDiagram: true,
         treemapChart: true
     });
 
@@ -479,23 +476,7 @@ const Dashboard = ({ insidenList = [] }) => {
     };
 
 
-   // Utility function to count flows for Sankey
-   const countFlows = (data, fromKey, toKey) => {
-    const flowMap = {};
-    data.forEach((insiden) => {
-        const from = insiden[fromKey];
-        const to = insiden[toKey];
-        const flowKey = `${from}-${to}`;
-        if (!flowMap[flowKey]) {
-            flowMap[flowKey] = 0;
-        }
-        flowMap[flowKey] += 1;
-    });
-    return Object.entries(flowMap).map(([key, weight]) => {
-        const [from, to] = key.split('-');
-        return [from, to, weight];
-    });
-};
+   
 
 // Define colors for each "Category" (Pilihan)
 const categoryColors = {
@@ -507,18 +488,6 @@ const categoryColors = {
 
 // Filter incidents based on selected timeframe
 const filteredData = filterIncidentsByTimeFrame(timeFrame);
-
-// Generate Sankey data with colors
-const sankeyData = [
-    // From "Category" (Pilihan) to "SBU"
-    ...countFlows(filteredData, 'pilihan', 'sbu').map(flow => ({
-        from: flow[0], to: flow[1], weight: flow[2], color: categoryColors[flow[0]]
-    })),
-    // From "SBU" to "Status"
-    ...countFlows(filteredData, 'sbu', 'status').map(flow => ({
-        from: flow[0], to: flow[1], weight: flow[2], color: categoryColors[flow[0]]
-    }))
-];
 
 // Pareto chart logic
 const paretoChartData = {
@@ -549,28 +518,9 @@ const handleHighchartsClick = (chartType, point) => {
     let filteredTypeData = [];
     let title = '';
 
-    if (chartType === 'sankey') {
-        // Filter incidents based on the flow between "from" and "to" in Sankey chart
-        if (point.isNode) {
-            // Handle node click (if it's only 'from' or 'to')
-            filteredTypeData = filteredData.filter(incident => 
-                incident.pilihan === point.name || incident.sbu === point.name || incident.status === point.name
-            );
-            title = `Incidents for ${point.name}`;
-        } else {
-            // Handle link click (between 'from' and 'to')
-            filteredTypeData = filteredData.filter(incident =>
-                (incident.pilihan === point.from && incident.sbu === point.to) ||
-                (incident.sbu === point.from && incident.status === point.to)
-            );
-            title = `Incidents from ${point.from} to ${point.to}`;
-        }
+    
 
-    } else if (chartType === 'treemap') {
-        // Handle Treemap click based on SBU (point.name contains the SBU name)
-        filteredTypeData = filteredData.filter(incident => incident.sbu === point.name);
-        title = `Incidents for SBU: ${point.name}`;
-    }
+   
 
     // Update modal data and open the modal with the filtered incidents
     setFilteredIncidents(filteredTypeData);
@@ -581,45 +531,7 @@ const handleHighchartsClick = (chartType, point) => {
 
 
 
-const sankeyChartOptions = {
-    title: {
-        text: 'Incident Flow by Category, SBU, and Status',
-    },
-    series: [
-        {
-            keys: ['from', 'to', 'weight'], // Keys indicating data mapping for sankey chart
-            data: sankeyData.map(flow => [flow.from, flow.to, flow.weight]), // Mapping your flow data into the required format
-            type: 'sankey',
-            name: 'Incident Flow',
-            linkColorByTarget: true,  // Color each flow by the target node
-            colors: Object.values(categoryColors), // Apply your custom colors for the flows
 
-            // Handling click event to trigger modal
-            events: {
-                click: function (event) {
-                    // Ensure the event.point contains the required data
-                    if (event.point) {
-                        handleHighchartsClick('sankey', event.point); // Call the handler function with the event point data
-                    }
-                }
-            },
-
-            dataLabels: {
-                color: '#333',
-                enabled: true,
-                
-            },
-        },
-    ],
-    tooltip: {
-        pointFormat: '<b>{point.from}</b> → <b>{point.to}</b>: {point.weight}', // Tooltip format for displaying flow data
-    },
-    plotOptions: {
-        series: {
-            cursor: 'pointer', // Show pointer cursor on hover
-        },
-    }
-};
 
 
     
@@ -768,12 +680,7 @@ const sankeyChartOptions = {
 </div>
 )}
 
-                {visibleCharts.sankeyDiagram && (
-                    <div className="chart chart-large">
-                        <h4>Sankey Diagram of Incident Flow</h4>
-                        <HighchartsReact highcharts={Highcharts} options={sankeyChartOptions} />
-                    </div>
-                )}
+                
 
                 
                 {isModalOpen && (
