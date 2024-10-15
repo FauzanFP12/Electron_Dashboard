@@ -46,7 +46,10 @@ const InsidenTable = ({ setChartData }) => {
     const fetchIncidents = async () => {
         try {
             const response = await axios.get('http://localhost:5000/api/insidens');
-            const incidents = response.data;
+            const incidents = response.data.map(incident => ({
+                ...incident,
+                priority: incident.priority || 'Medium'  // Set default priority to 'Low' if not defined
+            }));
             setInsidens(incidents);
             setFilteredInsidens(incidents);
             organizeChartData(incidents);
@@ -136,7 +139,7 @@ const InsidenTable = ({ setChartData }) => {
     
             // Kirim request untuk membuka kembali insiden dan menyimpan waktu reopen
             await axios.put(`http://localhost:5000/api/insidens/reopen/${incident._id}`, {
-                status: "In Progress", // Set status menjadi In Progress
+                status: "Re Open", // Set status menjadi In Progress
                 tanggalReopen: currentTime, // Simpan tanggal reopen
                 elapsedTime: formattedElapsedTime // Tambahkan deskripsi "reopen"
             });
@@ -188,7 +191,7 @@ const InsidenTable = ({ setChartData }) => {
     }, [filteredInsidens, gridApi]);
 
     const organizeChartData = (incidents) => {
-        const statusCount = { Open: 0, Closed: 0, InProgress: 0 };
+        const statusCount = { Open: 0, Closed: 0, ReOpen: 0 };
         const categoryCount = { Backbone: 0, SuperBackbone: 0, Distribusi: 0, Access: 0 };
 
         const sbuCategoryData = {};
@@ -211,7 +214,7 @@ const InsidenTable = ({ setChartData }) => {
             }
 
             if (!sbuStatusData[sbu]) {
-                sbuStatusData[sbu] = { Open: 0, Closed: 0, InProgress: 0 };
+                sbuStatusData[sbu] = { Open: 0, Closed: 0, ReOpen: 0 };
             }
             if (sbuStatusData[sbu][insiden.status] !== undefined) {
                 sbuStatusData[sbu][insiden.status] += 1;
@@ -242,7 +245,8 @@ const InsidenTable = ({ setChartData }) => {
                 (insiden.deskripsi && insiden.deskripsi.toLowerCase().includes(term.toLowerCase())) ||
                 (insiden.status && insiden.status.toLowerCase().includes(term.toLowerCase())) ||
                 (insiden.pilihan && insiden.pilihan.toLowerCase().includes(term.toLowerCase())) ||
-                (insiden.sbu && insiden.sbu.toLowerCase().includes(term.toLowerCase()));
+                (insiden.sbu && insiden.sbu.toLowerCase().includes(term.toLowerCase()))||
+                (insiden.priority && insiden.priority.toLowerCase().includes(term.toLowerCase()));
 
             const elapsedMilliseconds = currentTime - new Date(insiden.tanggalSubmit);
             const elapsedHours = Math.floor(elapsedMilliseconds / (1000 * 60 * 60));
@@ -346,6 +350,7 @@ const InsidenTable = ({ setChartData }) => {
             pilihan: incident.pilihan,
             tanggalStart: formatDateUTC(incident.tanggalSubmit), // Format tanggal start
             tanggalSubmit: formatDateUTCS(incident.tanggalStart), // Format tanggal submit
+            priority:incident.priority,
             elapsedTimes:  formatElapsedTime (incident.elapsedTime)
         }));
 
@@ -357,7 +362,8 @@ const InsidenTable = ({ setChartData }) => {
             { E: 'Pilihan' },
             { F: 'Tanggal Start' },
             { G: 'Tanggal Submit' },
-            { H: 'Waktu Yang Dibutuhkan',}
+            { H: 'Priority'},
+            { I: 'Waktu Yang Dibutuhkan',}
         ];
 
         const worksheet = XLSX.utils.aoa_to_sheet([ // Using aoa_to_sheet to insert headers
@@ -370,6 +376,7 @@ const InsidenTable = ({ setChartData }) => {
                 row.pilihan,
                 row.tanggalStart,
                 row.tanggalSubmit,
+                row.priority,
                 row.elapsedTimes
             ])
         ]);
@@ -437,6 +444,7 @@ const InsidenTable = ({ setChartData }) => {
                         pilihan: row['Pilihan'],
                         tanggalStart: row['Tanggal Submit'] ? addGMT7(new Date(formatDate(row['Tanggal Submit']))) : gmt7Date,
                         tanggalSubmit: row['Tanggal Start'] ? addGMT7(new Date(formatDate(row['Tanggal Start']))) : gmt7Date,
+                        priority: row['Priority'],
                         elapsedTimes: elapsedTime < 0 ? elapsedTime : elapsedTime, // Ensure no negative elapsed time
                     };
 
@@ -651,6 +659,21 @@ const InsidenTable = ({ setChartData }) => {
             field: 'elapsedTime', 
             headerName: 'Elapsed Time', 
             valueGetter: (incident) => calculateElapsedTime(incident.data) 
+        },
+        { 
+            field: 'priority', 
+            headerName: 'Priority', 
+            sortable: true, 
+            filter: 'agTextColumnFilter', 
+            editable: true,  // You can make it editable if needed
+            cellRendererFramework: (params) => {
+                const priority = params.value || 'Medium';
+                const priorityClass = priority.toLowerCase(); // Add CSS class for styling
+    
+                return (
+                    <span className={`priority-badge ${priorityClass}`}>{priority}</span>
+                );
+            }
         },
         {
             headerName: 'Actions',

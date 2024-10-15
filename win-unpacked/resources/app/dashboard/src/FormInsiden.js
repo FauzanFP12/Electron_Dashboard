@@ -10,6 +10,7 @@ const FormInsiden = ({ addInsiden }) => {
         tanggalSubmit: '',
         sbu: '',
         pilihan: '',          // Field for selection (backbone, superbackbone, distribusi, access)
+        priority: 'Medium',      // Tambahkan field priority, dengan default 'Low'
     });
 
     const [loading, setLoading] = useState(false); // State for loading
@@ -23,22 +24,21 @@ const FormInsiden = ({ addInsiden }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
-    
+
         try {
             // Konversi tanggalSubmit dari waktu lokal ke UTC -7
             const localDate = new Date(formData.tanggalSubmit);
             const utcDate = new Date(localDate.getTime() + 7 * 60 * 60 * 1000 - 25200 * 1000); // Convert to UTC
-    
+
             const formattedData = {
                 ...formData,
                 tanggalSubmit: utcDate.toISOString(), // Kirim dalam format UTC (ISO string)
             };
-    
-    
+
             const response = await axios.post('http://localhost:5000/api/insidens', formattedData);
-    
+
             addInsiden(response.data);
-    
+
             // Reset form setelah berhasil submit
             setFormData({
                 idInsiden: '',
@@ -48,8 +48,9 @@ const FormInsiden = ({ addInsiden }) => {
                 tanggalSubmit: '',
                 sbu: '',
                 pilihan: '',
+                priority: 'Medium',
             });
-    
+
             setErrorMessage('');
         } catch (error) {
             setErrorMessage('Error adding incident. Please try again.');
@@ -57,7 +58,6 @@ const FormInsiden = ({ addInsiden }) => {
             setLoading(false);
         }
     };
-    
 
     return (
         <div className="form-container">
@@ -91,7 +91,6 @@ const FormInsiden = ({ addInsiden }) => {
                     required
                 >
                     <option value="Open">Open</option>
-                    <option value="InProgress">In Progress</option>
                     <option value="Closed">Closed</option>
                 </select>
                 {/* Tanggal Start */}
@@ -125,6 +124,17 @@ const FormInsiden = ({ addInsiden }) => {
                     <option value="Access">Access</option>
                 </select>
 
+                {/* Priority */}
+                <select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleChange}
+                    required
+                >
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                </select>
+
                 {/* Submit button */}
                 <button type="submit" disabled={loading}>
                     {loading ? 'Submitting...' : 'Add Insiden'}
@@ -140,7 +150,8 @@ const FormInsiden = ({ addInsiden }) => {
                         tanggalStart: '',
                         tanggalSubmit: '',
                         sbu: '',
-                        pilihan: ''
+                        pilihan: '',
+                        priority: 'Medium',
                     })}
                 > 
                     Reset

@@ -27,6 +27,7 @@ const insidenSchema = new mongoose.Schema({
   distribusi: { type: String },
   access: { type: String },
   pilihan: { type: String },
+  priority: { type: String },
 });
 
 const Insiden = mongoose.model('Insiden', insidenSchema);

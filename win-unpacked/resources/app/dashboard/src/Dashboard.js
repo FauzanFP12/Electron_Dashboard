@@ -60,14 +60,15 @@ const Dashboard = ({ insidenList = [] }) => {
         sbuBar: true,
         categoryBar: true,
         radarChart: true,
-        treemapChart: true
+        treemapChart: true,
+        topPriority: true,
     });
 
     const [settingsVisible, setSettingsVisible] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filteredIncidents, setFilteredIncidents] = useState([]);
     const [modalTitle, setModalTitle] = useState('');
-    const [statusCount, setStatusCount] = useState({ Open: 0, Closed: 0, InProgress: 0 });
+    const [statusCount, setStatusCount] = useState({ Open: 0, Closed: 0, ReOpen: 0 });
     const [timeCount, setTimeCount] = useState({ under4: 0, under8: 0, under12: 0, under24: 0 });
     const [incidentsOverTime, setIncidentsOverTime] = useState({ labels: [], data: [] });
     const [sbuStatusData, setSbuStatusData] = useState({});
@@ -81,7 +82,7 @@ const Dashboard = ({ insidenList = [] }) => {
     useEffect(() => {
         const filteredIncidents = filterIncidentsByTimeFrame(timeFrame);
 
-        const tempStatusCount = { Open: 0, Closed: 0, InProgress: 0 };
+        const tempStatusCount = { Open: 0, Closed: 0, ReOpen: 0 };
         const tempTimeCount = { under4: 0, under8: 0, under12: 0, under24: 0 };
         const tempIncidentsOverTime = {};
         const tempSbuStatusData = {};
@@ -112,7 +113,7 @@ const Dashboard = ({ insidenList = [] }) => {
             tempIncidentsOverTime[dateKey] += 1;
 
             if (!tempSbuStatusData[insiden.sbu]) {
-                tempSbuStatusData[insiden.sbu] = { Open: 0, Closed: 0, InProgress: 0 };
+                tempSbuStatusData[insiden.sbu] = { Open: 0, Closed: 0, ReOpen: 0 };
             }
             tempSbuStatusData[insiden.sbu][insiden.status] += 1;
 
@@ -134,8 +135,19 @@ const Dashboard = ({ insidenList = [] }) => {
     }, [insidenList, timeFrame, customStartDate, customEndDate]);
 
     const handleSbuSelection = (e) => {
-        setSelectedSbu(e.target.value);
+        const selected = e.target.value;
+        setSelectedSbu(selected); // Set SBU yang dipilih
+    
+        if (selected !== 'All') {
+            // Filter insiden berdasarkan SBU yang dipilih
+            const filteredBySbu = insidenList.filter(insiden => insiden.sbu === selected);
+            setFilteredIncidents(filteredBySbu); // Set insiden yang sesuai dengan SBU
+        } else {
+            // Jika "All" dipilih, tampilkan semua insiden
+            setFilteredIncidents(insidenList);
+        }
     };
+    
 
     const filterIncidentsByTimeFrame = (timeFrame) => {
         const currentTime = new Date();
@@ -166,6 +178,7 @@ const Dashboard = ({ insidenList = [] }) => {
             }
         });
     };
+    
 
     // Apply time filter before opening the modal
     const openModalWithType = (type) => {
@@ -186,9 +199,9 @@ const Dashboard = ({ insidenList = [] }) => {
                 filteredTypeData = filteredData.filter((insiden) => insiden.status === 'Closed');
                 title = 'Closed Incidents';
                 break;
-            case 'InProgress':
-                filteredTypeData = filteredData.filter((insiden) => insiden.status === 'InProgress');
-                title = 'In Progress Incidents';
+            case 'ReOpen':
+                filteredTypeData = filteredData.filter((insiden) => insiden.status === 'ReOpen');
+                title = 'Re Open Incidents';
                 break;
             default:
                 break;
@@ -203,16 +216,21 @@ const Dashboard = ({ insidenList = [] }) => {
         setIsModalOpen(false);
         setFilteredIncidents([]);
     };
+    const openModalForIncident = (incident) => {
+        setFilteredIncidents([incident]); // Set filteredIncidents to an array containing only the clicked incident
+        setModalTitle(`Details for Incident: ${incident.idInsiden}`); // Set the modal title to the incident's ID
+        setIsModalOpen(true); // Open the modal
+    };
 
     const handleToggleChart = (chart) => {
         setVisibleCharts((prev) => ({ ...prev, [chart]: !prev[chart] }));
     };
 
     const doughnutData = {
-        labels: ['Open', 'Closed', 'InProgress'],
+        labels: ['Open', 'Closed', 'ReOpen'],
         datasets: [
             {
-                data: [statusCount.Open, statusCount.Closed, statusCount.InProgress],
+                data: [statusCount.Open, statusCount.Closed, statusCount.ReOpen],
                 backgroundColor: ['#3498db', '#2ecc71', '#f39c12'],
             },
         ],
@@ -280,8 +298,10 @@ const Dashboard = ({ insidenList = [] }) => {
             }
             case 'category': {
                 const category = chartData.labels[chartIndex];
-                filteredTypeData = filteredData.filter(incident => incident.pilihan === category);
-                title = `Incidents of ${category}`;
+                filteredTypeData = filteredData
+                    .filter(incident => incident.pilihan === category)
+                    .filter(incident => selectedSbu === 'All' || incident.sbu === selectedSbu); // Filter berdasarkan SBU juga
+                title = `Incidents of ${category} (${selectedSbu})`; // Set judul modal dengan SBU
                 break;
             }
             case 'date': {
@@ -298,6 +318,39 @@ const Dashboard = ({ insidenList = [] }) => {
         setModalTitle(title);
         setIsModalOpen(true);
     };
+
+    const getTopPriorityIncidents = (insidenList, topCount = 10) => {
+        const priorityOrder = { High: 3, Medium: 2, Low: 1 }; // Urutan prioritas
+        
+        return [...insidenList]
+            .filter(incident => incident.status === 'Open') // Hanya pilih insiden yang "Open"
+            .map(incident => ({
+                ...incident,
+                priorityValue: priorityOrder[incident.priority] || 0 // Jika tidak ada prioritas, beri nilai default 0
+            }))
+            .sort((a, b) => b.priorityValue - a.priorityValue) // Urutkan berdasarkan prioritas
+            .slice(0, topCount); // Ambil top `topCount` insiden dengan prioritas tertinggi
+    };
+    
+    
+    
+    
+    const getLongestOpenIncidents = (insidenList, topCount = 10) => {
+        return [...insidenList]
+            .filter(incident => incident.status === 'Open') // Hanya insiden yang masih "Open"
+            .map(incident => {
+                const currentTime = new Date();
+                const startTime = new Date(incident.tanggalReopen || incident.tanggalSubmit);
+                const elapsedMilliseconds = currentTime - startTime; // Hitung waktu berjalan dari tanggal submit/reopen
+                return { ...incident, elapsedTime: elapsedMilliseconds }; // Tambahkan field elapsedTime
+            })
+            .sort((a, b) => b.elapsedTime - a.elapsedTime) // Urutkan berdasarkan elapsedTime terlama
+            .slice(0, topCount); // Ambil top `topCount` insiden dengan waktu berjalan terlama
+    };
+    
+    
+    const topPriorityIncidents = getTopPriorityIncidents(insidenList, 10); // Top 10 prioritas
+    const longestOpenIncidents = getLongestOpenIncidents(insidenList, 10); // Top 10 open terlama
     
 
     const timePieOptions = {
@@ -329,8 +382,8 @@ const Dashboard = ({ insidenList = [] }) => {
                 backgroundColor: '#2ecc71',
             },
             {
-                label: 'In Progress Tickets',
-                data: sbuLabels.map((sbu) => sbuStatusData[sbu]?.InProgress || 0),
+                label: 'Re Open Tickets',
+                data: sbuLabels.map((sbu) => sbuStatusData[sbu]?.ReOpen || 0),
                 backgroundColor: '#f39c12',
             },
         ],
@@ -465,15 +518,24 @@ const Dashboard = ({ insidenList = [] }) => {
     
 
     const radarChartOptions = {
-        scales: { r: { angleLines: { display: false }, suggestedMin: 0, suggestedMax: 5 } },
-        plugins: { legend: { display: true, position: 'bottom' } },
+        scales: { 
+            r: { 
+                angleLines: { display: false }, 
+                suggestedMin: 0, 
+                suggestedMax: 5 
+            } 
+        },
+        plugins: { 
+            legend: { display: true, position: 'bottom' } 
+        },
         onClick: (evt, elements) => {
             if (elements.length > 0) {
                 const chartIndex = elements[0].index;
-                handleChartClick('category', radarChartData, chartIndex);
+                handleChartClick('category', radarChartData, chartIndex); // Panggil fungsi handleChartClick
             }
         },
     };
+    
 
 
    
@@ -518,6 +580,12 @@ const handleHighchartsClick = (chartType, point) => {
     let filteredTypeData = [];
     let title = '';
 
+    if (chartType === 'treemap') {
+        // Handle Treemap click based on SBU (point.name contains the SBU name)
+        filteredTypeData = filteredData.filter(incident => incident.sbu === point.name);
+        title = `Incidents for SBU: ${point.name}`;
+    }
+
     
 
    
@@ -527,6 +595,22 @@ const handleHighchartsClick = (chartType, point) => {
     setModalTitle(title);
     setIsModalOpen(true);
 };
+const formatElapsedTime = (milliseconds) => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const days = Math.floor(totalSeconds / (3600 * 24));
+    const hours = Math.floor((totalSeconds % (3600 * 24)) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    let result = '';
+    if (days > 0) result += `${days}d `;
+    if (hours > 0) result += `${hours}h `;
+    if (minutes > 0) result += `${minutes}m `;
+    if (seconds > 0 || result === '') result += `${seconds}s`;
+
+    return result.trim();
+};
+
 
 
 
@@ -611,9 +695,9 @@ const handleHighchartsClick = (chartType, point) => {
                     <h3>Closed Tickets</h3>
                     <p>{statusCount.Closed}</p>
                 </div>
-                <div className="counter" onClick={() => openModalWithType('InProgress')}>
-                    <h3>In Progress Tickets</h3>
-                    <p>{statusCount.InProgress}</p>
+                <div className="counter" onClick={() => openModalWithType('ReOpen')}>
+                    <h3>Re Open Tickets</h3>
+                    <p>{statusCount.ReOpen}</p>
                 </div>
             </div>
 
@@ -630,32 +714,6 @@ const handleHighchartsClick = (chartType, point) => {
                         <HighchartsReact highcharts={Highcharts} options={treemapChartOptions} />
                     </div>
                 )}
-
-
-                {visibleCharts.pie && (
-                    <div className="chart">
-                        <h4>Incidents by Elapsed Time</h4>
-                        <Pie data={timePieData} options={timePieOptions} />
-                    </div>
-                )}
-
-<div className={`chart chart-large`} >
-    <h4>Incidents per SBU (Open, Closed, In Progress)</h4>
-    <Bar data={sbuGroupedBarData} options={sbuGroupedBarOptions} />
-</div>
-<div className={`chart chart-large`}  >
-    <h4>Incidents per Category (Backbone, Super Backbone, Distribusi, Access)</h4>
-    <Bar data={categoryStackedBarData} options={categoryStackedBarOptions} />
-</div>
-<div className={`chart chart-large`} >
-    <h4>Incidents Over Time</h4>
-    <Line data={lineChartData} options={lineChartOptions} />
-</div>
-
-
-                
-
-
                 {visibleCharts.radarChart && (
                     <div className="chart full-width">
                         <h4>Incident Distribution by Category and SBU</h4>
@@ -673,6 +731,69 @@ const handleHighchartsClick = (chartType, point) => {
                         <Radar data={radarChartData} options={radarChartOptions} />
                     </div>
                 )}
+
+
+                {visibleCharts.pie && (
+                    <div className="chart">
+                        <h4>Incidents by Elapsed Time</h4>
+                        <Pie data={timePieData} options={timePieOptions} />
+                    </div>
+                )}
+
+<div className={`chart chart-large`} >
+                 <div className="top-lists"></div>
+
+{/* Top 10 Inciden Open Terlama */}
+<div className="longest-open-list">
+    <h4>Top 10 Longest Open Incidents</h4>
+    <ul>
+    {longestOpenIncidents.map((incident, index) => (
+            <li key={index} onClick={() => openModalForIncident(incident)}>
+                <strong>{incident.idInsiden}</strong>: {incident.deskripsi} 
+                (Elapsed Time: {formatElapsedTime(incident.elapsedTime)})
+            </li>
+        ))}
+    </ul>
+</div>
+</div>
+<div className={`chart chart-large`} >
+<div className="top-lists">
+            {/* Top 10 Prioritas */}
+            <div className="top-priority-list">
+                <h4>Top 10 Priority Incidents</h4>
+                <ul>
+                {topPriorityIncidents.map((incident, index) => (
+            <li key={index} onClick={() => openModalForIncident(incident)}>
+                <strong>{incident.idInsiden}</strong>: {incident.deskripsi} (Priority: {incident.priority})
+            </li>
+                    ))}
+                </ul>
+            </div>
+            </div>
+            </div>
+
+
+<div className={`chart chart-large`} >
+    <h4>Incidents per SBU (Open, Closed, Re Open)</h4>
+    <Bar data={sbuGroupedBarData} options={sbuGroupedBarOptions} />
+</div>
+<div className={`chart chart-large`}  >
+    <h4>Incidents per Category (Backbone, Super Backbone, Distribusi, Access)</h4>
+    <Bar data={categoryStackedBarData} options={categoryStackedBarOptions} />
+</div>
+<div className={`chart chart-large`} >
+    <h4>Incidents Over Time</h4>
+    <Line data={lineChartData} options={lineChartOptions} />
+
+</div>
+
+
+           
+            
+                
+
+
+                
                 {visibleCharts.paretoChart && (
 <div className="chart chart-large">
     <h4>Pareto Chart of Incident Categories</h4>

@@ -286,3 +286,21 @@
   font-size: 20px;
   color: #3498db; /* Loading color */
 }
+.priority-badge {
+  padding: 5px 10px;
+  border-radius: 4px;
+  color: white;
+  font-weight: bold;
+}
+
+.priority-badge.low {
+  background-color: green;
+}
+
+.priority-badge.medium {
+  background-color: orange;
+}
+
+.priority-badge.high {
+  background-color: red;
+}

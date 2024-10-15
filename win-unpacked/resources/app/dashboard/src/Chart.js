@@ -18,7 +18,7 @@ const STATUS_COLORS = {
     Active: "#8e44ad",
     Check: "#f39c12",
     Completed: "#2ecc71",
-    InProgress: "#3498db"
+    ReOpen: "#3498db"
 };
 
 const Dashboard = ({ insidenList }) => {
@@ -27,7 +27,7 @@ const Dashboard = ({ insidenList }) => {
         Active: 0,
         Check: 0,
         Completed: 0,
-        InProgress: 0
+        ReOpen: 0
     };
 
     insidenList.forEach((insiden) => {

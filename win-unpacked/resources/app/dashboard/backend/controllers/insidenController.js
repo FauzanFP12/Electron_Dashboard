@@ -14,7 +14,7 @@ export const getInsidens = async (req, res) => {
 export const createInsiden = async (req, res) => {
   console.log('Incoming POST request:', req.body); // Debugging line
 
-  const { idInsiden, deskripsi, status, tanggalStart, tanggalSubmit, tanggalElapse, sbu, backbone, superbackbone, distribusi, access, pilihan } = req.body;
+  const { idInsiden, deskripsi, status, tanggalStart, tanggalSubmit, tanggalElapse, sbu, backbone, superbackbone, distribusi, access, pilihan,priority } = req.body;
 
   // Validate tanggalStart to ensure it is not in the future
   const now = new Date();
@@ -47,6 +47,7 @@ export const createInsiden = async (req, res) => {
     access,
     pilihan,
     tanggalElapse,
+    priority,
     elapsedTime,  // Save calculated elapsed time
   });
 
