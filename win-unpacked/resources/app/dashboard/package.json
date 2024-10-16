@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Dashboard app",
   "author": "Dashboard",
-  
+  "homepage": "./",
   "main": "dashboard/main.js", 
   
   "dependencies": {
