@@ -23,7 +23,7 @@ function createWindow() {
 
   // Handle window close event
   mainWindow.on('closed', () => {
-    mainWindow = null;
+    mainWindow = null; 
   });
 }
 
