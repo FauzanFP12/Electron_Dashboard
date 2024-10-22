@@ -10,8 +10,9 @@ let expressServer;  // To store the Express server
 // Function to create the Electron window
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1000,
+    height: 800,
+    icon: path.join(__dirname, 'logo.ico'),
     webPreferences: {
       nodeIntegration: true,      // Allows using Node.js modules in frontend
       contextIsolation: false      // Adjust according to your security needs
