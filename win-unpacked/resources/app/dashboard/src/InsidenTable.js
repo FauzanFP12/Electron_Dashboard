@@ -49,7 +49,7 @@ const InsidenTable = ({ setChartData }) => {
 
     const fetchIncidents = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/insidens');
+            const response = await axios.get('http://10.128.168.209:5000/api/insidens');
             const incidents = response.data.map(incident => ({
                 ...incident,
                 priority: incident.priority || 'Medium'  // Set default priority to 'Low' if not defined
@@ -116,7 +116,7 @@ const InsidenTable = ({ setChartData }) => {
             const formattedElapsedTime = `${formatElapsedTime(totalElapsedTime)} (Closed)`;
     
             // Kirim request untuk menutup insiden dan menyimpan total waktu
-            await axios.put(`http://localhost:5000/api/insidens/close/${incident._id}`, {
+            await axios.put(`http://10.128.168.209:5000/api/insidens/close/${incident._id}`, {
                 elapsedTime: totalElapsedTime, // Simpan total waktu yang berjalan dalam milidetik
                 status: formattedElapsedTime // Simpan deskripsi elapsed time di field status
             });
@@ -142,7 +142,7 @@ const InsidenTable = ({ setChartData }) => {
             const formattedElapsedTime = `${formatElapsedTime(incident.elapsedTime)} + ${formatElapsedTime(elapsedSinceClose)} (Reopened)`;
     
             // Kirim request untuk membuka kembali insiden dan menyimpan waktu reopen
-            await axios.put(`http://localhost:5000/api/insidens/reopen/${incident._id}`, {
+            await axios.put(`http://10.128.168.209:5000/api/insidens/reopen/${incident._id}`, {
                 status: "Re Open", // Set status menjadi In Progress
                 tanggalReopen: currentTime, // Simpan tanggal reopen
                 elapsedTime: formattedElapsedTime // Tambahkan deskripsi "reopen"
@@ -286,7 +286,7 @@ const InsidenTable = ({ setChartData }) => {
 
     const handleDeleteIncident = async (incidentId) => {
         try {
-            await axios.delete(`http://localhost:5000/api/insidens/${incidentId}`);
+            await axios.delete(`http://10.128.168.209:5000/api/insidens/${incidentId}`);
             fetchIncidents();  // Refresh the incidents list after deletion
         } catch (error) {
             console.error('Error deleting incident:', error);
@@ -464,7 +464,7 @@ const InsidenTable = ({ setChartData }) => {
                     }
     
                     // Make a POST request to save the new incident to the backend
-                    await axios.post('http://localhost:5000/api/insidens', newIncident);
+                    await axios.post('http://10.128.168.209:5000/api/insidens', newIncident);
                 }
     
                 // Fetch updated incidents after upload
@@ -548,7 +548,7 @@ const InsidenTable = ({ setChartData }) => {
 
     const handleEditIncident = async (updatedIncident) => {
         try {
-            await axios.put(`http://localhost:5000/api/insidens/${updatedIncident._id}`, updatedIncident);
+            await axios.put(`http://10.128.168.209:5000/api/insidens/${updatedIncident._id}`, updatedIncident);
             fetchIncidents();
             setShowEditModal(false);
             setCurrentIncident(null);
@@ -826,7 +826,7 @@ const InsidenTable = ({ setChartData }) => {
         // Ubah menjadi async/await untuk setiap penghapusan individual
         const deletePromises = selectedRows.map(async (row) => {
             try {
-                await axios.delete(`http://localhost:5000/api/insidens/${row._id}`);
+                await axios.delete(`http://10.128.168.209:5000/api/insidens/${row._id}`);
             } catch (error) {
                 // Tangkap dan log error dari setiap permintaan individu
                 console.error(`Error deleting incident with ID ${row.idInsiden}:`, error);

@@ -19,7 +19,7 @@ const App = () => {
     const getInsidens = async () => {
         setLoading(true); // Start loading
         try {
-            const response = await axios.get('http://localhost:5000/api/insidens');
+            const response = await axios.get('http://10.128.168.209:5000/api/insidens');
             setInsidenList(response.data); // Update incident list
             calculateChartData(response.data); // Update chart data
         } catch (error) {

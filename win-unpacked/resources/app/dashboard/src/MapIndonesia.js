@@ -60,7 +60,7 @@ const PetaIndonesia = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/insidens');
+        const response = await axios.get('http://10.128.168.209:5000/api/insidens');
         setAllInsidens(response.data);
       } catch (error) {
         console.error('Gagal mengambil data insiden:', error);
