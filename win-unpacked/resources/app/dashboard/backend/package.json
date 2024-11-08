@@ -6,12 +6,17 @@
   "main": "server.js",
   "scripts": {
     "start": "cross-env NODE_ENV=production node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "pm2-start": "pm2 start server.js --name \"backend\" --watch"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^5.11.15"
   },
   "devDependencies": {

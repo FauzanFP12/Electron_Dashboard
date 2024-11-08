@@ -38,7 +38,8 @@
     "start": "cross-env BROWSER=none react-scripts start",
     "build": "react-scripts build",
     "electron": "electron .",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "pm2-start": "pm2 start npm --name \"Dashboard-App\" -- start"
   },
   "build": {
     "appId": "com.myapp.desktop",
