@@ -1,0 +1,104 @@
+.chat-container {
+    display: flex;
+    width: 97%;
+    height: 88vh;
+}
+
+.ticket-list {
+    width: 25%;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.ticket-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #ddd;
+}
+
+.ticket-item.selected {
+    background-color: #f0f0f0;
+    font-weight: bold;
+}
+
+.chat-area {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: #fafafa;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.message {
+    margin-bottom: 10px;
+    padding: 5px 10px;
+    border-radius: 5px;
+    background-color: #e1f5fe;
+}
+
+.message.from-user {
+    background-color: #dcedc8;
+    align-self: flex-end;
+}
+
+.chat-input {
+    
+    align-items: center;
+    gap: 5px;
+    padding-top: 10px;
+}
+
+.chat-input input[type="text"] {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.chat-input button {
+    padding: 8px;
+    cursor: pointer;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+.chat-input input[type="file"] {
+    border: none;
+    padding: 5px;
+}
+
+.ticket-details {
+    width: 25%;
+    padding: 10px;
+    border-left: 1px solid #ddd;
+}
+
+.create-ticket-form input,
+.create-ticket-form textarea {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.create-ticket-form button {
+    padding: 8px;
+    width: 100%;
+    cursor: pointer;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}

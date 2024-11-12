@@ -11,12 +11,14 @@ import EditFormInsiden from './EditFormInsiden';
 import { ClientSideRowModelModule } from '@ag-grid-community/client-side-row-model';
 import { ModuleRegistry } from '@ag-grid-community/core';
 import * as XLSX from 'xlsx';
+import Antrian from './Antrian';
 
 
 // Register ag-Grid community module
 ModuleRegistry.registerModules([ClientSideRowModelModule]);
 
 const InsidenTable = ({ setChartData }) => {
+    const [newMessage, setNewMessage] = useState('');
     const [gridApi, setGridApi] = useState(null);  
     const [gridColumnApi, setGridColumnApi] = useState(null);  
     const [loading, setLoading] = useState(false); // State for loading indicator
@@ -33,7 +35,10 @@ const InsidenTable = ({ setChartData }) => {
     const [loadingDelete, setLoadingDelete] = useState(false); // State for delete loading
     const [loadingUpload, setLoadingUpload] = useState(false); // State for upload loading
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showModal1, setShowModal1] = useState(false);
     const [modalData, setModalData] = useState(null);
+    const [incidentChats, setIncidentChats] = useState({});
+
     const [elapsedTimeInterval, setElapsedTimeInterval] = useState(null);
     const gridRef = useRef(null);
 
@@ -91,6 +96,20 @@ const InsidenTable = ({ setChartData }) => {
             return formatElapsedTime(elapsedMilliseconds); // Format to string
         }
     };
+   
+    
+    const fetchChats = async (incidentId) => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/insidens/${incidentId}/chat`);
+            setIncidentChats((prevChats) => ({
+                ...prevChats,
+                [incidentId]: response.data,
+            }));
+        } catch (error) {
+            console.error("Error fetching chat:", error);
+        }
+    };
+    
     
     
     
@@ -612,20 +631,58 @@ const InsidenTable = ({ setChartData }) => {
             hour12: false, // To ensure 24-hour format
         });
     };
-    const handleWorkOnIncident = async (incidentId) => {
-        try {
-            // Make an API request to update the incident status to "In Progress"
-            await axios.put(`${process.env.REACT_APP_API_URL}/api/insidens/work/${incidentId}`, { status: "In Progress" });
+    const handleRequestClick = (incidentId) => {
+        setModalData(incidentId);
+
+    };
+    // Handle submission of the message and update incident status to "In Queue"
+    const handleSubmitRequest = async (incidentId) => {
+        if (!newMessage.trim()) {
+            alert('Please enter a message.');
+            return;
+        }
     
-            // Refresh the incident list after updating
-            fetchIncidents();
-            alert('You are now working on this incident.');
-            setShowDetailsModal(false); // Close modal after starting work
+        try {
+            // First, update the incident status to "In Queue"
+            const updateResponse = await updateIncidentStatus(incidentId);
+    
+            if (updateResponse.status === 200) {
+                console.log('Incident moved to the queue:', updateResponse.data);
+    
+                // Then, send the chat message
+                const chatResponse = await sendChatMessage(incidentId);
+    
+                if (chatResponse.status === 200) {
+                    console.log('Message sent:', chatResponse.data);
+                    alert('Incident moved to the queue and message sent to chat.');
+                    setShowModal(false);  // Close the modal after success
+                    setNewMessage('');  // Clear the input field after success
+                }
+            } else {
+                throw new Error('Failed to update incident status.');
+            }
         } catch (error) {
-            console.error('Error starting work on incident:', error);
-            alert('Failed to start work on this incident.');
+            console.error('Error during request submission:', error);
+            alert('Error: ' + error.message);  // Display the specific error message
         }
     };
+    
+    // Function to update the incident status
+    const updateIncidentStatus = async (incidentId) => {
+        return axios.put(`${process.env.REACT_APP_API_URL}/api/insidens/work/${incidentId}`, { status: "In Queue" });
+    };
+    
+    // Function to send the chat message
+    const sendChatMessage = async (incidentId) => {
+        return axios.post(`${process.env.REACT_APP_API_URL}/api/insidens/${incidentId}/chat`, { message: newMessage });
+    };
+    
+
+    
+    
+    
+
+    
     const downloadSelectedExcel = () => {
         if (selectedRows.length === 0) {
             return alert('Please select incidents to download.');
@@ -953,6 +1010,7 @@ const InsidenTable = ({ setChartData }) => {
                     onGridReady={onGridReady} 
                     onColumnMoved={onColumnMoved} 
                 />
+                
 
                 <canvas id="chartCanvas" width="400" height="200"></canvas>
 
@@ -979,27 +1037,60 @@ const InsidenTable = ({ setChartData }) => {
                 )}
                 
 
-                {showDetailsModal && modalData && (
-    <div className="modal-overlay">
-        <div className="modal-content">
-            <button className="modal-close" onClick={() => setShowDetailsModal(false)}>×</button>
-            <h2>Detail Insiden</h2>
-            <p><strong>ID Insiden:</strong> {modalData.idInsiden}</p>
-            <p><strong>Deskripsi:</strong> {modalData.deskripsi}</p>
-            <p><strong>Status:</strong> {modalData.status}</p>
-            <p><strong>Start Date:</strong> {formatDateUTCS(modalData.tanggalSubmit)}</p>
-            <p><strong>SBU:</strong> {modalData.sbu}</p>
-            <p><strong>Kategori:</strong> {modalData.pilihan}</p>
-            
-            {/* Button positioned in the bottom right */}
-            <button 
-                className="button is-primary modal-button-bottom-right" 
-                onClick={() => handleWorkOnIncident(modalData._id)}>
-                Start Working on This Incident
-            </button>
-        </div>
+                {/* First Modal - Show Incident Details */}
+            {/* First Modal - Show Incident Details */}
+{showDetailsModal && modalData && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <button className="modal-close" onClick={() => setShowDetailsModal(false)}>×</button>
+      <h2>Detail Insiden</h2>
+      <p><strong>ID Insiden:</strong> {modalData.idInsiden}</p>
+      <p><strong>Deskripsi:</strong> {modalData.deskripsi}</p>
+      <p><strong>Status:</strong> {modalData.status}</p>
+      <p><strong>Start Date:</strong> {modalData.tanggalSubmit}</p>
+      <p><strong>SBU:</strong> {modalData.sbu}</p>
+      <p><strong>Kategori:</strong> {modalData.pilihan}</p>
+
+      {/* Button to open second modal */}
+      <button
+        className="button is-primary modal-button-bottom-right"
+        onClick={() => {
+          setShowDetailsModal(false); // Close first modal
+          setShowModal1(true); // Open second modal
+        }}
+      >
+        Request
+      </button>
     </div>
+  </div>
 )}
+
+{/* Second Modal - Enter Message */}
+{showModal1 && modalData && (
+  <div className="modal-overlay">
+    <div className="modal-content">
+      <h3>Enter a message to move the incident to the queue</h3>
+      <textarea
+        value={newMessage}
+        onChange={(e) => setNewMessage(e.target.value)} // Update new message
+        placeholder="Type a message..."
+      />
+      <div className="modal-actions">
+        <button
+          onClick={() => {
+            handleSubmitRequest(modalData.idInsiden); // Submit the request
+            setShowModal1(false); // Close modal after submission
+          }}
+        >
+          Submit
+        </button>
+        <button onClick={() => setShowModal1(false)}>Cancel</button> {/* Close modal */}
+      </div>
+    </div>
+  </div>
+)}
+
+
 
                
             </div>

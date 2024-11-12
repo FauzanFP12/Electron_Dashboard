@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
+    const [isHelpDeskOpen, setHelpDeskOpen] = useState(false);
+
+    const toggleHelpDeskDropdown = () => {
+        setHelpDeskOpen(!isHelpDeskOpen);
+    };
+
     return (
         <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
             {isOpen && (
@@ -16,9 +22,20 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                         <li>
                             <a href="/insiden-table">Insiden Table</a>
                         </li>
+                       
+                        <li>
+                            <a onClick={toggleHelpDeskDropdown} href="#!">Help Desk</a>
+                            {isHelpDeskOpen && (
+                                <ul className="dropdown">
+                                    <li><a href="/help-desk/view">General</a></li>
+                                    <li><a href="/help-desk/create">Create Chat </a></li>
+                                    <li><a href="/help-desk/general">Open Chat</a></li>
+                                    <li><a href="/help-desk/close">Close Chat</a></li>       
+                                </ul>
+                            )}
+                        </li>
                     </ul>
                 </nav>
-                
             )}
         </div>
     );

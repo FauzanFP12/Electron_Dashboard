@@ -6,10 +6,14 @@ import InsidenTable from './InsidenTable';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Login from './Login';
-import Register from './Register'
+import General from './General'
+import Antrian from './Antrian'
 import './App.css';
 import axios from 'axios';
 import MapIndonesia from './MapIndonesia';
+import Chat from './Chat';
+import CloseChat from './CloseChat';
+import HelpDesk from './HelpDesk';
 
 const App = () => {
     const [insidenList, setInsidenList] = useState([]); // State for incident list
@@ -91,6 +95,27 @@ const App = () => {
                             element={<Login />} 
                             
                         />
+                         <Route 
+                            path="/help-desk/view" 
+                            element={<General/>} 
+                            
+                        />
+                        <Route 
+                            path="/help-desk/create" 
+                            element={<HelpDesk/>} 
+                            
+                        />
+                         <Route 
+                            path="/help-desk/general" 
+                            element={<Chat/>} 
+                            
+                        />
+                         <Route 
+                            path="/help-desk/close" 
+                            element={<CloseChat/>} 
+                            
+                        />
+                       
                       
                     </Routes>
                 )}
