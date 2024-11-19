@@ -41,7 +41,7 @@ const HelpDesk = () => {
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/helpdesk-tickets`, {
                 subject,
                 description,
-                status: "New",
+                status: "Open",
             });
 
             if (response.status === 201) {

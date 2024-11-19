@@ -80,19 +80,7 @@ const Chat = ({ selectedTicket }) => {
                     )}
                 </div>
 
-                <div className="chat-input">
-                    <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}>😊</button>
-                    {showEmojiPicker && <EmojiPicker onEmojiClick={(emojiData) => setNewMessage((prev) => prev + emojiData.emoji)} />}
-                    <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder="Type a message..."
-                    />
-                    <input type="file" onChange={(e) => setSelectedFile(e.target.files[0])} />
-                    <button onClick={sendChatMessage}>Send</button>
-                </div>
+                
             </div>
 
             <div className="ticket-details">

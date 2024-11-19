@@ -4,36 +4,96 @@ import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import { Server } from 'socket.io';
+import http from 'http';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import helpdeskRoutes from './routes/helpdeskRoutes.js';
 import insidenRoutes from './routes/insidenRoutes.js';
+import User from './models/User.js';
+import { fileURLToPath } from 'url';
 
-dotenv.config();  // Initialize dotenv to load environment variables
+import HelpdeskTicket from './models/HelpdeskTicket.js';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware for JSON parsing and CORS
+// Setup HTTP server and WebSocket
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://10.255.254.145:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  },
+});
+
+// WebSocket logic
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('sendMessage', (data) => {
+    console.log('Message received:', data);
+    io.emit('receiveMessage', data); // Broadcast to all connected clients
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Middleware setup
 app.use(cors());
 app.use(express.json());
 
-// MongoDB connection using environment variables for the URI
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+// MongoDB connection
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Users array to simulate a database for authentication (You can replace this with a real DB)
-const users = [
-  {
-    id: 1,
-    username: 'admin',
-    password: bcrypt.hashSync('password', 10), // 'password' hashed for security
-  },
-];
+  const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Ensure 'uploads' directory exists
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 
-// Middleware to authenticate using JWT token
+// File upload configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, path.join(__dirname, 'uploads'));
+  },
+  filename: (req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      cb(null, `${uniqueSuffix}-${file.originalname}`);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    return cb(new Error('Invalid file type'), false);
+  }
+  cb(null, true);
+};
+
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Maks 5MB
+  fileFilter
+})
+
+
+// Middleware to authenticate the token
 const authenticateToken = (req, res, next) => {
   const token = req.header('Authorization')?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
@@ -45,29 +105,122 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Login endpoint
-app.post('/api/login', (req, res) => {
+// Login route (access token + refresh token)
+app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
-  // Find the user by username
-  const user = users.find((u) => u.username === username);
-  if (!user) return res.status(400).json({ message: 'User not found' });
+  try {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(400).json({ message: 'Invalid username or password' });
 
-  // Compare password
-  const isMatch = bcrypt.compareSync(password, user.password);
-  if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Invalid username or password' });
 
-  // Generate JWT token
-  const token = jwt.sign({ id: user.id, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const accessToken = jwt.sign(
+      { id: user._id, username: user.username, role: user.role, fullName: user.fullName },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
-  res.json({ token });
+    res.json({ accessToken, refreshToken, role: user.role, fullName: user.fullName });
+  } catch (err) {
+    console.error('Error in login route:', err);
+    res.status(500).json({ message: 'An error occurred during login.' });
+  }
 });
 
-// Use the routes for helpdesk tickets and incidents
-app.use('/api/helpdesk-tickets', helpdeskRoutes); // Secure helpdesk routes with JWT authentication
-app.use('/api/insidens', insidenRoutes); // Secure incident routes with JWT authentication
+// Refresh token route
+app.post('/api/refresh-token', (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ message: 'Invalid refresh token' });
+
+    const newAccessToken = jwt.sign(
+      { id: user.id, username: user.username, role: user.role, fullName: user.fullName },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    res.json({ accessToken: newAccessToken });
+  });
+});
+
+// File upload route for multiple files
+app.post('/api/upload', upload.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'extraField', maxCount: 1 }
+]), async (req, res) => {
+  if (!req.files || Object.keys(req.files).length === 0) {
+    return res.status(400).json({ message: 'No files uploaded' });
+  }
+
+  const { ticketId, sender, message } = req.body;
+
+  if (!ticketId) {
+    return res.status(400).json({ message: 'ticketId is required' });
+  }
+
+  try {
+    const ticket = await HelpdeskTicket.findById(ticketId);
+    if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
+
+    // Prepare file data
+    const filesData = (req.files['file'] || []).map((file) => ({
+      filename: file.filename,
+      path: `${process.env.BACKEND_URL}/uploads/${file.filename}`, // Create absolute URL to the uploaded file
+      size: file.size,
+      uploadedAt: Date.now(), // Timestamp of when the file was uploaded
+      fileUrl: `${process.env.BACKEND_URL}/uploads/${file.filename}`,
+    }));
+
+    const extraData = (req.files['extraField'] || []).map((file) => ({
+      filename: file.filename,
+      path: `${process.env.BACKEND_URL}/uploads/${file.filename}`, // Create absolute URL to the uploaded file
+      size: file.size,
+      uploadedAt: Date.now(),
+      fileUrl: `${process.env.BACKEND_URL}/uploads/${file.filename}`,
+    }));
+
+    // Prepare the chat message data to push to the ticket
+    const chatMessage = {
+      sender: sender || 'System', // Set default sender if not provided
+      message: message || ' ', // Set default message if not provided
+      fileUrl: filesData.length > 0 ? filesData[0].fileUrl : '', // Assuming fileUrl to be associated with first file in the message
+      files: [...filesData, ...extraData], // Combine all files
+      createdAt: Date.now(),
+    };
+
+    // Push the chat message into the chatMessages array
+    ticket.chatMessages.push(chatMessage);
+
+    // Save the updated ticket
+    await ticket.save();
+
+    res.json({
+      message: 'Files uploaded successfully and message added to ticket',
+      files: [...filesData, ...extraData],
+      ticket,
+    });
+  } catch (err) {
+    console.error('Error in file upload:', err.message);
+    res.status(500).json({ message: 'File upload failed.' });
+  }
+});
+
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Routes for helpdesk tickets and incidents (secured with JWT)
+app.use('/api/helpdesk-tickets', helpdeskRoutes);
+app.use('/api/insidens', insidenRoutes);
+
+// Default route
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
+// Start the server and bind it to all interfaces
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://10.255.254.145:${PORT}`);
 });

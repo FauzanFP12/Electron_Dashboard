@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import User from '../models/User.js';  // User model
+import User from '../models/User.js';  // Make sure this model includes a fullName field
 import dotenv from 'dotenv';
 
 dotenv.config();  // Load environment variables from .env file
@@ -12,61 +12,48 @@ const router = express.Router();
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
-  // Validate input
   if (!username || !password) {
     return res.status(400).json({ message: 'Username and password are required' });
   }
 
   try {
-    console.log('Login attempt for username:', username);
-
-    // Normalize username to lowercase for case-insensitive comparison
     const user = await User.findOne({ username: username.toLowerCase() });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Debugging: Check stored password hash and entered password
-    console.log('Entered Password:', password);
-    console.log('Stored Password Hash:', user.password);
+    const isMatch = await bcrypt.compare(password, user.password);  // Check password match
 
-    // Compare password
-    const isMatch = await user.isPasswordMatch(password);
-
-    console.log('Password match result:', isMatch);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Generate JWT token
+    // Generate JWT token with fullName and role
     const token = jwt.sign(
-      { id: user._id, username: user.username },
+      { id: user._id, username: user.username, fullName: user.fullName, role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: '3h' } // Token expires in 3 hours
+      { expiresIn: '3h' }  // Token expires in 3 hours
     );
 
-    console.log('Generated Token:', token);
-
-    // Send token in response
-    res.json({ token });
+    res.json({ token, fullName: user.fullName, role: user.role });
   } catch (error) {
     console.error('Login Error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 
+
 // Register endpoint (for normal users)
 router.post('/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, fullName } = req.body; // Make sure fullName is passed
 
   // Validate input
-  if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required' });
+  if (!username || !password || !fullName) {
+    return res.status(400).json({ message: 'Username, password, and fullName are required' });
   }
 
   try {
-    // Normalize username to lowercase
     const normalizedUsername = username.toLowerCase();
 
     // Check if user with the given username already exists
@@ -81,7 +68,8 @@ router.post('/register', async (req, res) => {
     // Save new user to database
     const newUser = new User({
       username: normalizedUsername,
-      password: hashedPassword
+      password: hashedPassword,
+      fullName: fullName // Store fullName
     });
     await newUser.save();
 
@@ -91,19 +79,16 @@ router.post('/register', async (req, res) => {
   }
 });
 
-
-
 // Register Admin (used only once for the first admin user creation)
 router.post('/register-admin', async (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, fullName } = req.body; // Include fullName for admin as well
 
   // Validate input
-  if (!username || !password) {
-    return res.status(400).json({ message: 'Username and password are required' });
+  if (!username || !password || !fullName) {
+    return res.status(400).json({ message: 'Username, password, and fullName are required' });
   }
 
   try {
-    // Normalize username to lowercase
     const normalizedUsername = username.toLowerCase();
 
     // Check if admin user already exists
@@ -124,7 +109,8 @@ router.post('/register-admin', async (req, res) => {
     // Create new admin user
     const newUser = new User({
       username: normalizedUsername,
-      password: hashedPassword
+      password: hashedPassword,
+      fullName: fullName // Store fullName for admin
     });
 
     await newUser.save();

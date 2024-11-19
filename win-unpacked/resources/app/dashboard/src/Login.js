@@ -2,57 +2,60 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import axios from 'axios';
+import toast, { Toaster } from 'react-hot-toast';  // Import toast and Toaster from react-hot-toast
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [isRegistering, setIsRegistering] = useState(false); // State to toggle between login and register
   const navigate = useNavigate();
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     try {
-        const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/login`, { username, password });
-        const { token } = response.data;
-        // Store token in localStorage
-        localStorage.setItem('token', token);
-        // Redirect to the dashboard on successful login
-        navigate('dashboard');
-      } catch (error) {
-        if (error.response) {
-          // Jika ada respons dari server
-          setErrorMessage(error.response.data.message || 'Login failed');
-        } else if (error.request) {
-          // Jika permintaan tidak dikirim atau masalah jaringan
-          setErrorMessage('Network error, please try again');
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/login`, { username, password });
+      const { accessToken, role, fullName } = response.data;
+
+      // Save token and role to local storage for future use
+      localStorage.setItem('token', accessToken);
+      localStorage.setItem('role', role);
+
+      // Save user details (including fullName) to localStorage
+      localStorage.setItem('user', JSON.stringify({
+        username: username,
+        fullName: fullName,
+      }));
+
+      // Display success message
+      toast.success('Login successful!');
+
+      setTimeout(() => {
+        // Redirect based on role after the delay
+        if (role === 'admin') {
+          navigate('/');
+          window.location.reload(); // Refresh the page
+        } else if (role === 'user') {
+          navigate('/');
+          window.location.reload(); // Refresh the page
         } else {
-          // Jika terjadi error lainnya
-          setErrorMessage('An unexpected error occurred');
+          navigate('/dashboard'); // Default fallback for other roles
+          window.location.reload(); // Refresh the page
         }
-        console.log('Login data:', { username, password });
 
-      }
-      
-  };
-
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/auth/register`, { username, password });
-      // After successful registration, you can navigate to login or auto-login
-      setIsRegistering(false);
-      alert('Registration successful, you can now log in.');
+      }, 1000);  // Delay for 2 seconds before redirecting
     } catch (error) {
-      setErrorMessage(error.response?.data?.message || 'Error occurred during registration');
+      // Display failure message
+      const message = error.response?.data?.message || 'Unable to login. Please try again.';
+      setErrorMessage(message);
+      toast.error('Login failed. Please try again.');
     }
   };
 
   return (
     <div className="login-container">
-      <h2>{isRegistering ? 'Register' : 'Login'} to Dashboard</h2>
+      <h2>Login to Dashboard</h2>
       {errorMessage && <p className="error">{errorMessage}</p>}
-      <form onSubmit={isRegistering ? handleRegisterSubmit : handleLoginSubmit}>
+      <form onSubmit={handleLoginSubmit}>
         <div className="form-group">
           <label>Username</label>
           <input
@@ -73,14 +76,11 @@ const Login = () => {
             placeholder="Enter your password"
           />
         </div>
-        <button type="submit">{isRegistering ? 'Register' : 'Login'}</button>
+        <button type="submit">Login</button>
       </form>
-      <p>
-        {isRegistering ? 'Already have an account?' : 'Don\'t have an account?'}
-        <span onClick={() => setIsRegistering(!isRegistering)} className="toggle-form">
-          {isRegistering ? 'Login' : 'Register'}
-        </span>
-      </p>
+
+      {/* Toaster container to show toasts */}
+      <Toaster position="top-center" />
     </div>
   );
 };

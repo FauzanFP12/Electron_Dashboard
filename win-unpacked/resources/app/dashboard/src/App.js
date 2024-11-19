@@ -14,6 +14,9 @@ import MapIndonesia from './MapIndonesia';
 import Chat from './Chat';
 import CloseChat from './CloseChat';
 import HelpDesk from './HelpDesk';
+import ProtectedRoute from './ProtectedRoutes';
+
+
 
 const App = () => {
     const [insidenList, setInsidenList] = useState([]); // State for incident list
@@ -72,47 +75,48 @@ const App = () => {
                 {loading ? (
                     <div className="loading-indicator">Loading...</div>
                 ) : (
+                    
                     <Routes>
                         <Route 
                             path="/" 
-                            element={<Dashboard insidenList={insidenList} chartData={chartData} />} 
+                            element={<ProtectedRoute><Dashboard insidenList={insidenList} chartData={chartData} /></ProtectedRoute>} 
                             
                         />
                         <Route 
                             path="/form-insiden" 
-                            element={<FormInsiden getInsidens={getInsidens} />} 
+                            element={<ProtectedRoute><FormInsiden getInsidens={getInsidens} /></ProtectedRoute>} 
                         />
                         <Route 
                             path="/insiden-table" 
-                            element={<InsidenTable setChartData={setChartData} getInsidens={getInsidens} />} 
+                            element={<ProtectedRoute><InsidenTable setChartData={setChartData} getInsidens={getInsidens} /></ProtectedRoute>} 
                         />
                         <Route 
                             path="/map-insiden" 
-                            element={<MapIndonesia />} 
+                            element={<ProtectedRoute><MapIndonesia /></ProtectedRoute>} 
                         />
                         <Route 
-                            path="/dashboard" 
+                            path="/login" 
                             element={<Login />} 
                             
                         />
                          <Route 
                             path="/help-desk/view" 
-                            element={<General/>} 
+                            element={<ProtectedRoute><General/></ProtectedRoute>} 
                             
                         />
                         <Route 
                             path="/help-desk/create" 
-                            element={<HelpDesk/>} 
+                            element={<ProtectedRoute><HelpDesk/></ProtectedRoute>} 
                             
                         />
                          <Route 
                             path="/help-desk/general" 
-                            element={<Chat/>} 
+                            element={<ProtectedRoute><Chat/></ProtectedRoute>} 
                             
                         />
                          <Route 
                             path="/help-desk/close" 
-                            element={<CloseChat/>} 
+                            element={<ProtectedRoute><CloseChat/></ProtectedRoute>} 
                             
                         />
                        

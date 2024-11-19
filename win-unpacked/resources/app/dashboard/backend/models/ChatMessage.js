@@ -5,6 +5,7 @@ const chatMessageSchema = new mongoose.Schema({
   sender: { type: String, required: true },
   message: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
+  fileUrl: String, // URL file yang diupload
 });
 
 module.exports = mongoose.model('ChatMessage', chatMessageSchema);
