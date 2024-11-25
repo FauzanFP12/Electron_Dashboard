@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { AgGridReact } from 'ag-grid-react'; // Import AG-Grid React component
 import ChatView from './ChatView'; // Import the Chat component
-import CloseChatView from './CloseChatView'; // Import the Chat component
+import CloseChatView from './CloseChatView'; // Import the CloseChat component
+import 'ag-grid-community/styles/ag-grid.css'; // AG-Grid styles
+import 'ag-grid-community/styles/ag-theme-alpine.css'; // AG-Grid Alpine theme
 import './General.css';
 
 const General = () => {
     const [tickets, setTickets] = useState([]);
     const [selectedTicket, setSelectedTicket] = useState(null);
+
+    // Retrieve user information from localStorage
+    const user = JSON.parse(localStorage.getItem("user"));
+    const fullName = user?.fullName;
+    const role = localStorage.getItem("role"); // role can be 'admin' or 'user'
 
     // Fetch all tickets on component mount
     useEffect(() => {
@@ -17,15 +25,23 @@ const General = () => {
     const fetchTickets = async () => {
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpdesk-tickets`);
-            setTickets(response.data);
+            const allTickets = response.data;
+
+            // Filter tickets based on the user's role
+            const filteredTickets = role === 'admin'
+                ? allTickets
+                : allTickets.filter(ticket => ticket.createdBy.fullName === fullName);
+
+            setTickets(filteredTickets);
         } catch (error) {
             console.error("Error fetching tickets:", error);
         }
     };
 
-    // Handle selecting a ticket and passing it to the chat
-    const handleSelectTicket = (ticket) => {
-        setSelectedTicket(ticket);  // Set the selected ticket
+    // Handle row selection in AG-Grid
+    const handleRowSelection = (event) => {
+        const selectedTicket = event.data;  // Get data directly from event
+        setSelectedTicket(selectedTicket);
     };
 
     const formatDate = (dateString) => {
@@ -42,53 +58,48 @@ const General = () => {
         return date.toLocaleString('en-US', options); // Formats date and time to a readable format
     };
 
+    // AG-Grid column definitions
+    const columns = [
+        { 
+            headerName: 'Created By', 
+            field: 'createdBy.fullName', // Always display fullName
+            flex: 1,
+            valueFormatter: (params) => params.value || "Unknown" // Fallback if no creator info is available
+        },
+        { headerName: 'Subject', field: 'subject', flex: 1 },
+        { headerName: 'Description', field: 'description', flex: 1 },
+        { headerName: 'Status', field: 'status', flex: 1 },
+        { 
+            headerName: 'Created Date', 
+            field: 'createdAt', 
+            flex: 1,
+            valueFormatter: (params) => formatDate(params.value) // Use valueFormatter to format date
+        },
+    ];
+
     return (
         <div className="general-container">
             {selectedTicket ? (
                 selectedTicket.status === 'Closed' ? (
-                    // Render something when the ticket is closed
                     <div>
                         <CloseChatView selectedTicket={selectedTicket} />
                     </div>
                 ) : (
-                    // Render regular chat if ticket is open
                     <ChatView selectedTicket={selectedTicket} />
                 )
             ) : (
                 <div>
                     <h2>All Helpdesk Tickets</h2>
-                    <table className="ticket-table">
-                        <thead>
-                            <tr>
-                                <th>Subject</th>
-                                <th>Description</th>
-                                <th>Status</th>
-                                <th>Created Date</th> {/* New Created Date column */}
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {tickets.length === 0 ? (
-                                <tr>
-                                    <td colSpan="5">No tickets found</td>
-                                </tr>
-                            ) : (
-                                tickets.map((ticket) => (
-                                    <tr key={ticket._id}>
-                                        <td>{ticket.subject}</td>
-                                        <td>{ticket.description}</td>
-                                        <td>{ticket.status}</td>
-                                        <td>{formatDate(ticket.createdAt)}</td> {/* Display formatted date and time */}
-                                        <td>
-                                            <button onClick={() => handleSelectTicket(ticket)}>
-                                                View Chat
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                    <div className="ag-theme-alpine" style={{ height: '350px', width: '100%' }}>
+                        <AgGridReact
+                            rowData={tickets}
+                            columnDefs={columns}
+                            domLayout="autoHeight"
+                            pagination={true}
+                            rowSelection="single"
+                            onRowClicked={handleRowSelection} // Handle row selection
+                        />
+                    </div>
                 </div>
             )}
         </div>

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';  // Pastikan Link digunakan untuk navigasi internal
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
     const [isHelpDeskOpen, setHelpDeskOpen] = useState(false);
+    const role = localStorage.getItem('role'); // Ambil role dari localStorage
 
+    // Fungsi untuk toggle dropdown Help Desk
     const toggleHelpDeskDropdown = () => {
         setHelpDeskOpen(!isHelpDeskOpen);
     };
@@ -12,25 +15,29 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         <div className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
             {isOpen && (
                 <nav>
-                    <ul><br></br><br></br>
+                    <ul><br /><br />
                         <li>
-                            <a href="/">Dashboard</a>
+                            <Link to="/">Dashboard</Link>
                         </li>
                         <li>
-                            <a href="/map-insiden">Map Insiden</a>
+                            <Link to="/map-insiden">Map Insiden</Link>
                         </li>
-                        <li>
-                            <a href="/insiden-table">Insiden Table</a>
-                        </li>
-                       
+                        
+                        {/* Hanya tampilkan Insiden Table untuk admin */}
+                        {role === 'admin' && (
+                            <li>
+                                <Link to="/insiden-table">Insiden Table</Link>
+                            </li>
+                        )}
+
                         <li>
                             <a onClick={toggleHelpDeskDropdown} href="#!">Help Desk</a>
                             {isHelpDeskOpen && (
                                 <ul className="dropdown">
-                                    <li><a href="/help-desk/view">General</a></li>
-                                    <li><a href="/help-desk/create">Create Chat </a></li>
-                                    <li><a href="/help-desk/general">Open Chat</a></li>
-                                    <li><a href="/help-desk/close">Close Chat</a></li>       
+                                    <li><Link to="/help-desk/view">General</Link></li>
+                                    <li><Link to="/help-desk/create">Create Chat</Link></li>
+                                    <li><Link to="/help-desk/general">Open Chat</Link></li>
+                                    <li><Link to="/help-desk/close">Close Chat</Link></li>
                                 </ul>
                             )}
                         </li>

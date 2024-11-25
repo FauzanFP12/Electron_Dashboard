@@ -5,6 +5,7 @@ const helpdeskTicketSchema = new mongoose.Schema({
   description: { type: String, required: true },
   status: { type: String, default: 'Open' },
   createdAt: { type: Date, default: Date.now },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Store user ID
   chatMessages: [
     {
       sender: { type: String, required: true },

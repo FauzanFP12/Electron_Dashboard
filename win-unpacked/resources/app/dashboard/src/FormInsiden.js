@@ -76,8 +76,9 @@ const FormInsiden = ({ addInsiden }) => {
                     required
                 />
                 {/* Deskripsi */}
-                <input
+                <textarea
                     type="text"
+                    class="custom-input" 
                     name="deskripsi"
                     value={formData.deskripsi}
                     onChange={handleChange}

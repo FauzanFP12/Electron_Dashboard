@@ -94,16 +94,19 @@ const upload = multer({
 
 
 // Middleware to authenticate the token
-const authenticateToken = (req, res, next) => {
+
+
+const authenticateJWT = (req, res, next) => {
   const token = req.header('Authorization')?.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Access denied, no token provided' });
+  if (!token) return res.status(403).json({ message: 'No token provided' });
 
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) return res.status(403).json({ message: 'Invalid token' });
-    req.user = user;
+    req.user = user; // Menambahkan user ke request
     next();
   });
 };
+
 
 // Login route (access token + refresh token)
 app.post('/api/login', async (req, res) => {
@@ -147,55 +150,60 @@ app.post('/api/refresh-token', (req, res) => {
   });
 });
 
-// File upload route for multiple files
 app.post('/api/upload', upload.fields([
   { name: 'file', maxCount: 1 },
   { name: 'extraField', maxCount: 1 }
 ]), async (req, res) => {
+  // Periksa apakah ada file yang diupload
   if (!req.files || Object.keys(req.files).length === 0) {
     return res.status(400).json({ message: 'No files uploaded' });
   }
 
-  const { ticketId, sender, message } = req.body;
+  const { ticketId, message } = req.body;
 
+  // Periksa apakah ticketId ada dalam body request
   if (!ticketId) {
     return res.status(400).json({ message: 'ticketId is required' });
   }
 
   try {
+    // Cari ticket berdasarkan ticketId
     const ticket = await HelpdeskTicket.findById(ticketId);
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
-    // Prepare file data
+    // Ambil nama pengirim dari req.user (untuk autentikasi, pastikan req.user ada)
+    const sender = req.user?.fullName || 'System';  // Jika req.user tidak ada, gunakan 'System' sebagai fallback
+
+    // Persiapkan data file yang diupload
     const filesData = (req.files['file'] || []).map((file) => ({
       filename: file.filename,
-      path: `${process.env.BACKEND_URL}/uploads/${file.filename}`, // Create absolute URL to the uploaded file
+      path: `${process.env.BACKEND_URL}/uploads/${file.filename}`, // URL file yang diupload
       size: file.size,
-      uploadedAt: Date.now(), // Timestamp of when the file was uploaded
+      uploadedAt: Date.now(), // Waktu upload
       fileUrl: `${process.env.BACKEND_URL}/uploads/${file.filename}`,
     }));
 
     const extraData = (req.files['extraField'] || []).map((file) => ({
       filename: file.filename,
-      path: `${process.env.BACKEND_URL}/uploads/${file.filename}`, // Create absolute URL to the uploaded file
+      path: `${process.env.BACKEND_URL}/uploads/${file.filename}`,
       size: file.size,
       uploadedAt: Date.now(),
       fileUrl: `${process.env.BACKEND_URL}/uploads/${file.filename}`,
     }));
 
-    // Prepare the chat message data to push to the ticket
+    // Siapkan pesan chat untuk ditambahkan ke ticket
     const chatMessage = {
-      sender: sender || 'System', // Set default sender if not provided
-      message: message || ' ', // Set default message if not provided
-      fileUrl: filesData.length > 0 ? filesData[0].fileUrl : '', // Assuming fileUrl to be associated with first file in the message
-      files: [...filesData, ...extraData], // Combine all files
-      createdAt: Date.now(),
+      sender,  // Ambil sender dari req.user atau gunakan fallback 'System'
+      message: message || ' ',  // Set pesan default jika tidak ada
+      fileUrl: filesData.length > 0 ? filesData[0].fileUrl : '', // Mengambil file URL pertama (jika ada)
+      files: [...filesData, ...extraData], // Gabungkan semua file
+      createdAt: Date.now(),  // Waktu pembuatan pesan
     };
 
-    // Push the chat message into the chatMessages array
+    // Push pesan chat ke array chatMessages milik ticket
     ticket.chatMessages.push(chatMessage);
 
-    // Save the updated ticket
+    // Simpan perubahan pada ticket
     await ticket.save();
 
     res.json({
@@ -208,6 +216,15 @@ app.post('/api/upload', upload.fields([
     res.status(500).json({ message: 'File upload failed.' });
   }
 });
+app.get('/api/users', async (req, res) => {
+  try {
+      const users = await User.find(); // Contoh query database
+      res.status(200).json(users); // Kirimkan response
+  } catch (error) {
+      res.status(500).json({ message: 'Error fetching users' });
+  }
+});
+
 
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -219,6 +236,7 @@ app.use('/api/insidens', insidenRoutes);
 app.get('/', (req, res) => {
   res.send('Server is running');
 });
+
 
 // Start the server and bind it to all interfaces
 server.listen(PORT, '0.0.0.0', () => {

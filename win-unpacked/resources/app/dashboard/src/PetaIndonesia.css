@@ -37,4 +37,7 @@
   .insiden-table tr:hover {
     background-color: #ddd;
   }
-  
+  .ag-cell {
+    white-space: normal !important; /* Mengizinkan teks melampaui satu baris */
+    line-height: 1.5; /* Memberikan jarak antar baris */
+}

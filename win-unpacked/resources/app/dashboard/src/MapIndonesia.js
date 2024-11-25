@@ -4,7 +4,10 @@ import indonesiaMap from './id/id-all.geo.json'; // GeoJSON Indonesia
 import { useEffect, useState } from 'react';
 import './PetaIndonesia.css';
 
-import axios from 'axios'; // Untuk mengambil data dari API backend
+import axios from 'axios'; // For fetching data from backend
+import { AgGridReact } from 'ag-grid-react'; // Import ag-Grid
+import 'ag-grid-community/styles/ag-grid.css'; // ag-Grid styles
+import 'ag-grid-community/styles/ag-theme-alpine.css'; // ag-Grid theme
 
 // Mapping Nama Provinsi ke Kode GeoJSON
 const namaKeKodeProvinsi = {
@@ -42,15 +45,14 @@ const namaKeKodeProvinsi = {
   "BALI & NUSA TENGGARA": "id-ba"
 };
 
-
 const PetaIndonesia = () => {
   const [dataPeta, setDataPeta] = useState([]);
   const [allInsidens, setAllInsidens] = useState([]);
   const [insidenPerProvinsi, setInsidenPerProvinsi] = useState([]);
   const [selectedProvinsi, setSelectedProvinsi] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // Filter untuk peta
-  const [statusFilterTable, setStatusFilterTable] = useState('all'); // Filter untuk tabel
-  const [sbuFilter, setSbuFilter] = useState('all'); // Filter untuk SBU
+  const [statusFilter, setStatusFilter] = useState('all'); // Filter for map
+  const [statusFilterTable, setStatusFilterTable] = useState('all'); // Filter for table
+  const [sbuFilter, setSbuFilter] = useState('all'); // Filter for SBU
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,7 +104,20 @@ const PetaIndonesia = () => {
     setInsidenPerProvinsi(insidenTerkait);
   };
 
-  
+  const handleFilterChange = (filter) => {
+    setStatusFilter(filter);
+    setSelectedProvinsi('');
+    setInsidenPerProvinsi([]);
+  };
+
+  const columnDefs = [
+    { headerName: 'ID Insiden', field: 'idInsiden' },
+    { headerName: 'Deskripsi', field: 'deskripsi',  autoHeight: true,flex:3},
+    { headerName: 'Status', field: 'status' },
+    { headerName: 'SBU', field: 'sbu' },
+    { headerName: 'Kategori', field: 'pilihan' },
+    { headerName: 'Prioritas', field: 'priority' }
+  ];
 
   const options = {
     chart: { map: indonesiaMap },
@@ -127,18 +142,12 @@ const PetaIndonesia = () => {
     ],
   };
 
-  const handleFilterChange = (filter) => {
-    setStatusFilter(filter);
-    setSelectedProvinsi('');
-    setInsidenPerProvinsi([]);
-  };
-
- 
   return (
     <div style={{ marginTop: '100px', width: '100%', maxWidth: 'flex' }}>
       <HighchartsReact
         highcharts={Highcharts}
         options={options}
+        domLayout="autoHeight"
         constructorType={'mapChart'}
         containerProps={{ style: { height: '600px', width: '100%' } }}
       />
@@ -147,38 +156,20 @@ const PetaIndonesia = () => {
         <div style={{ marginTop: '20px' }}>
           <h2 className="h2">Data Insiden di Provinsi: {selectedProvinsi}</h2>
 
-          <table className="insiden-table">
-            <thead>
-              <tr>
-                <th>ID Insiden</th>
-                <th>Deskripsi</th>
-                <th>Status</th>
-                <th>SBU</th>
-                <th>Kategori</th>
-                <th>Prioritas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {insidenPerProvinsi.map((insiden, index) => (
-                <tr key={index}>
-                  <td>{insiden.idInsiden}</td>
-                  <td>{insiden.deskripsi}</td>
-                  <td>{insiden.status}</td>
-                  <td>{insiden.sbu}</td>
-                  <td>{insiden.pilihan}</td>
-                  <td>{insiden.priority}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
+            <AgGridReact
+              columnDefs={columnDefs}
+              rowData={insidenPerProvinsi}
+              pagination={true}
+              paginationPageSize={10}
+              domLayout='autoHeight'
+            />
+          </div>
         </div>
       )}
 
       {/* Combined Filter Area at Bottom Right */}
       <div style={{ position: 'fixed', bottom: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        
-        
-
         {['all', 'Open', 'Closed'].map((filter) => (
           <button
             key={filter}

@@ -28,8 +28,8 @@ label {
     text-align: left;
 }
 
-input[type="text"],
-input[type="password"] {
+.custom-input[type="text"],
+.custom-input[type="password"] {
     padding: 0.75rem;
    
     border: 1px solid #ddd;
@@ -38,6 +38,19 @@ input[type="password"] {
     width: 100%;
     box-sizing: border-box;
 }
+input[type="text"],
+input[type="password"] {
+    padding: 0.75rem;
+   
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 2rem;
+    width: 60%;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+
 
 input[type="text"]:focus,
 input[type="password"]:focus {

@@ -1,12 +1,17 @@
 import express from 'express';
 import HelpdeskTicket from '../models/HelpdeskTicket.js'; // Assuming a Mongoose model is defined for HelpdeskTicket
+import User from '../models/User.js'; // Import the User model to populate createdBy
 
 const router = express.Router();
 
 // Get all helpdesk tickets
 router.get('/', async (req, res) => {
   try {
-    const tickets = await HelpdeskTicket.find();
+    // Fetch tickets and populate the 'createdBy' field with the user's fullName
+    const tickets = await HelpdeskTicket.find()
+      .populate('createdBy', 'fullName') // Populate createdBy field with the fullName of the user
+      .exec();
+      
     res.status(200).json(tickets);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch tickets', error: err.message });
@@ -15,18 +20,27 @@ router.get('/', async (req, res) => {
 
 // Create a new helpdesk ticket
 router.post('/', async (req, res) => {
-  const { subject, description, status } = req.body;
+  const { subject, description, status, fullName } = req.body;
 
   if (!subject || !description) {
     return res.status(400).json({ message: 'Subject and description are required' });
   }
 
   try {
+    // Assuming fullName comes from the logged-in user, find the corresponding user by fullName
+    const user = await User.findOne({ fullName }); // Find the user based on fullName
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create a new ticket with the user ID for createdBy
     const newTicket = new HelpdeskTicket({
       subject,
       description,
       status,
       createdAt: new Date(),
+      createdBy: user._id, // Save the user ID in createdBy
     });
 
     await newTicket.save();
@@ -52,6 +66,7 @@ router.get('/:ticketId/chat', async (req, res) => {
   }
 });
 
+// Post a message to a specific helpdesk ticket
 router.post('/:ticketId/chat', async (req, res) => {
   const ticketId = req.params.ticketId;
   const { sender, message } = req.body;

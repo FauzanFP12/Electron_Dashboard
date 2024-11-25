@@ -80,7 +80,7 @@ const Chat = ({ selectedTicket }) => {
                     )}
                 </div>
 
-                
+                <p></p>
             </div>
 
             <div className="ticket-details">

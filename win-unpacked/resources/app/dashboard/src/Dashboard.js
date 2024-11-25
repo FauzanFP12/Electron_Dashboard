@@ -59,7 +59,6 @@ const getColor = (index) => {
   };
 };
 
-
 const Dashboard = ({ insidenList = [] }) => {
   const [visibleCharts, setVisibleCharts] = useState({
     doughnut: true,
@@ -79,13 +78,13 @@ const Dashboard = ({ insidenList = [] }) => {
     topPriority: true,
     newIncident: true,
     sbuBarChart: true,
-   
   });
   const [historyLog, setHistoryLog] = useState([]);
-  const [fullDescription, setFullDescription] = useState('');
+  const [fullDescription, setFullDescription] = useState("");
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [yesModalOpen, setYesModalOpen] = useState(false);
   const [filteredIncidents, setFilteredIncidents] = useState([]);
   const [modalTitle, setModalTitle] = useState("");
   const [statusCount, setStatusCount] = useState({
@@ -110,7 +109,12 @@ const Dashboard = ({ insidenList = [] }) => {
   const [selectedSbu, setSelectedSbu] = useState("All");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  
+  const [activeChart, setActiveChart] = useState(null);
+
+  const yesOpenModal = (chartType) => {
+    setActiveChart(chartType);
+    setYesModalOpen(true);
+  };
 
   useEffect(() => {
     const filteredIncidents = filterIncidentsByTimeFrame(timeFrame);
@@ -261,16 +265,17 @@ const Dashboard = ({ insidenList = [] }) => {
   };
 
   const closeModal = () => {
+    setActiveChart(null);
+    setYesModalOpen(false);
     setIsModalOpen(false);
     setFilteredIncidents([]);
-    setFullDescription('');
+    setFullDescription("");
   };
   const openModalForIncident = (incident) => {
     setFilteredIncidents([incident]); // Set filteredIncidents to an array containing only the clicked incident
     setModalTitle(`Details for Incident: ${incident.idInsiden}`); // Set the modal title to the incident's ID
     setFullDescription(incident.deskripsi);
     setIsModalOpen(true); // Open the modal
-    
   };
 
   const handleToggleChart = (chart) => {
@@ -279,7 +284,12 @@ const Dashboard = ({ insidenList = [] }) => {
   // Record history function for tracking status changes
   const recordHistory = (incidentId, changeDetail) => {
     const timestamp = new Date().toLocaleString();
-    const newHistory = { incidentId, changeDetail, timestamp, user: 'currentUser' };
+    const newHistory = {
+      incidentId,
+      changeDetail,
+      timestamp,
+      user: "currentUser",
+    };
     setHistoryLog((prevLog) => [...prevLog, newHistory]);
   };
 
@@ -287,9 +297,6 @@ const Dashboard = ({ insidenList = [] }) => {
     recordHistory(incidentId, `Status changed to ${newStatus}`);
     // Update the status in your data and refresh as needed.
   };
-
- 
-
 
   const doughnutData = {
     labels: ["Open", "Closed", "ReOpen"],
@@ -378,33 +385,31 @@ const Dashboard = ({ insidenList = [] }) => {
         title = `Incidents in ${sbu}`;
         break;
       }
-      case 'category': {
+      case "category": {
         const category = chartData.labels[chartIndex];
         filteredTypeData = filteredData
-            .filter(incident => incident.pilihan === category)
-            .filter(incident => selectedSbu === 'All' || incident.sbu === selectedSbu); // Filter berdasarkan SBU juga
+          .filter((incident) => incident.pilihan === category)
+          .filter(
+            (incident) => selectedSbu === "All" || incident.sbu === selectedSbu
+          ); // Filter berdasarkan SBU juga
         title = `Incidents of ${category} (${selectedSbu})`; // Set judul modal dengan SBU
         break;
-    }
-    case "sbuCategory": {
-      // Pastikan datasetIndex ada dan chartData.datasets[datasetIndex] juga ada
-      if (datasetIndex !== undefined && chartData.datasets[datasetIndex]) {
-        const sbu = chartData.labels[chartIndex];
-        const category = chartData.datasets[datasetIndex].label; // Ambil kategori dari dataset yang diklik
-        filteredTypeData = filteredData.filter(
-          (incident) => incident.sbu === sbu && incident.pilihan === category
-        );
-        title = `Incidents of ${category} in ${sbu}`;
-      } else {
-        console.error("Dataset or category not found");
       }
-      break;
-    }
-    
-    
-    
-    
-    
+      case "sbuCategory": {
+        // Pastikan datasetIndex ada dan chartData.datasets[datasetIndex] juga ada
+        if (datasetIndex !== undefined && chartData.datasets[datasetIndex]) {
+          const sbu = chartData.labels[chartIndex];
+          const category = chartData.datasets[datasetIndex].label; // Ambil kategori dari dataset yang diklik
+          filteredTypeData = filteredData.filter(
+            (incident) => incident.sbu === sbu && incident.pilihan === category
+          );
+          title = `Incidents of ${category} in ${sbu}`;
+        } else {
+          console.error("Dataset or category not found");
+        }
+        break;
+      }
+
       case "date": {
         const date = chartData.labels[chartIndex];
         filteredTypeData = filteredData.filter(
@@ -424,58 +429,64 @@ const Dashboard = ({ insidenList = [] }) => {
     setIsModalOpen(true);
   };
 
-  const truncateText = (text, maxLength =150) => {
-  if (!text) return '';
-  return text.length > maxLength ? text.slice(0, maxLength) + '...' : text;
-};
+  const truncateText = (text, maxLength = 90) => {
+    if (!text) return "";
+    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
+  };
 
-const getTopPriorityIncidents = (insidenList, topCount = 10) => {
-  const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+  const getTopPriorityIncidents = (insidenList, topCount = 10) => {
+    const priorityOrder = { High: 3, Medium: 2, Low: 1 };
 
-  return [...insidenList]
-    .filter((incident) => incident.status === "Open" || incident.status === "ReOpen")
-    .map((incident) => ({
-      ...incident,
-      priorityValue: priorityOrder[incident.priority] || 0,
-      deskripsi: truncateText(incident.deskripsi),   // Shortened for display
-      fullDeskripsi: incident.deskripsi,             // Full text for modal
-    }))
-    .sort((a, b) => b.priorityValue - a.priorityValue)
-    .slice(0, topCount);
-};
+    return [...insidenList]
+      .filter(
+        (incident) => incident.status === "Open" || incident.status === "ReOpen"
+      )
+      .map((incident) => ({
+        ...incident,
+        priorityValue: priorityOrder[incident.priority] || 0,
+        deskripsi: truncateText(incident.deskripsi), // Shortened for display
+        fullDeskripsi: incident.deskripsi, // Full text for modal
+      }))
+      .sort((a, b) => b.priorityValue - a.priorityValue)
+      .slice(0, topCount);
+  };
 
-const getLongestOpenIncidents = (insidenList, topCount = 10) => {
-  return [...insidenList]
-    .filter((incident) => incident.status === "Open" || incident.status === "ReOpen")
-    .map((incident) => {
-      const currentTime = new Date();
-      const startTime = new Date(incident.tanggalReopen || incident.tanggalSubmit);
-      const elapsedMilliseconds = currentTime - startTime;
-      return { 
-        ...incident, 
-        elapsedTime: elapsedMilliseconds, 
-        deskripsi: truncateText(incident.deskripsi),   // Shortened for display
-        fullDeskripsi: incident.deskripsi,             // Full text for modal
-      };
-    })
-    .sort((a, b) => b.elapsedTime - a.elapsedTime)
-    .slice(0, topCount);
-};
+  const getLongestOpenIncidents = (insidenList, topCount = 10) => {
+    return [...insidenList]
+      .filter(
+        (incident) => incident.status === "Open" || incident.status === "ReOpen"
+      )
+      .map((incident) => {
+        const currentTime = new Date();
+        const startTime = new Date(
+          incident.tanggalReopen || incident.tanggalSubmit
+        );
+        const elapsedMilliseconds = currentTime - startTime;
+        return {
+          ...incident,
+          elapsedTime: elapsedMilliseconds,
+          deskripsi: truncateText(incident.deskripsi), // Shortened for display
+          fullDeskripsi: incident.deskripsi, // Full text for modal
+        };
+      })
+      .sort((a, b) => b.elapsedTime - a.elapsedTime)
+      .slice(0, topCount);
+  };
 
-const getRecentIncidents = (insidenList, topCount = 10) => {
-  return [...insidenList]
-    .filter((incident) => incident.status === "Open" || incident.status === "ReOpen")
-    .map((incident) => ({
-      ...incident,
-      deskripsi: truncateText(incident.deskripsi),    // Shortened for display
-      fullDeskripsi: incident.deskripsi,              // Full text for modal
-    }))
-    .sort((a, b) => new Date(b.tanggalSubmit) - new Date(a.tanggalSubmit))
-    .slice(0, topCount);
-};
+  const getRecentIncidents = (insidenList, topCount = 10) => {
+    return [...insidenList]
+      .filter(
+        (incident) => incident.status === "Open" || incident.status === "ReOpen"
+      )
+      .map((incident) => ({
+        ...incident,
+        deskripsi: truncateText(incident.deskripsi), // Shortened for display
+        fullDeskripsi: incident.deskripsi, // Full text for modal
+      }))
+      .sort((a, b) => new Date(b.tanggalSubmit) - new Date(a.tanggalSubmit))
+      .slice(0, topCount);
+  };
 
-  
-  
   const recentIncidents = getRecentIncidents(insidenList, 5); // Top 10 data terbaru
 
   const topPriorityIncidents = getTopPriorityIncidents(insidenList, 10); // Top 10 prioritas
@@ -580,8 +591,14 @@ const getRecentIncidents = (insidenList, topCount = 10) => {
         const chartIndex = elements[0].index;
         const datasetIndex = elements[0].datasetIndex; // Pastikan datasetIndex ada
         if (datasetIndex !== undefined) {
-          handleChartClick("sbuCategory", categoryStackedBarData, chartIndex, datasetIndex);
-        }}
+          handleChartClick(
+            "sbuCategory",
+            categoryStackedBarData,
+            chartIndex,
+            datasetIndex
+          );
+        }
+      }
     },
   };
 
@@ -738,7 +755,6 @@ const getRecentIncidents = (insidenList, topCount = 10) => {
 
     return result.trim();
   };
-  
 
   const treemapChartOptions = {
     series: [
@@ -784,7 +800,6 @@ const getRecentIncidents = (insidenList, topCount = 10) => {
             onClose={() => setSettingsVisible(false)}
           />
         )}
-        
 
         <div className="time-frame-selector">
           <button
@@ -838,119 +853,124 @@ const getRecentIncidents = (insidenList, topCount = 10) => {
             <p>{statusCount.Closed}</p>
           </div>
           <div className="counter" onClick={() => openModalWithType("ReOpen")}>
-            <h3>Re Open Tickets</h3>
+            <h3>ReOpen Tickets</h3>
             <p>{statusCount.ReOpen}</p>
           </div>
         </div>
 
-        
-     
-      {/* Button to open settings modal */}
-      <button onClick={() => setShowSettingsModal(!showSettingsModal)}>
-        Customize Dashboard
-      </button>
+        {/* Button to open settings modal */}
+        <button onClick={() => setShowSettingsModal(!showSettingsModal)}>
+          Customize Dashboard
+        </button>
 
-      {/* Settings modal for dashboard customization */}
-      {showSettingsModal && (
-     
-     <div className="modal-overlay">
-        <div className="settings-modal">
-          <h3>Customize Dashboard</h3>
-          <div><br></br></div>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.doughnut || false}
-              onChange={() => handleToggleChart("doughnut")}
-            />
-            Status Breakdown
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.treemapChart || false}
-              onChange={() => handleToggleChart("treemapChart")}
-            />
-            Indident Breakdown Treemap
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.radarChart || false}
-              onChange={() => handleToggleChart("radarChart")}
-            />
-            Incident Distribution by Category and SBU
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.pie || false}
-              onChange={() => handleToggleChart("pie")}
-            />
-            Indidents by Elapsed Time
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.longestOpen || false}
-              onChange={() => handleToggleChart("longestOpen")}
-            />
-            Top 10 Longest Open Incident
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.topPriority || false}
-              onChange={() => handleToggleChart("topPriority")}
-            />
-            Top 10 Priority Incidents
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.newIncident || false}
-              onChange={() => handleToggleChart("newIncident")}
-            />
-            5 New Incidents
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.incidentsOverTime || false}
-              onChange={() => handleToggleChart("incidentsOverTime")}
-            />
-            Incidents Over Time
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.incidentPerSbu || false}
-              onChange={() => handleToggleChart("incidentPerSbu")}
-            />
-            Incidents per SBU
-          </label>
-          <label>
-            <input
-              type="checkbox"
-              checked={visibleCharts?.incidentPerCategory || false}
-              onChange={() => handleToggleChart("incidentPerCategory")}
-            />
-            Incidents per Category
-          </label>
-          <button onClick={() => setShowSettingsModal(false)}>Close</button>
-        </div>
-        </div>
-      )}
+        {/* Settings modal for dashboard customization */}
+        {showSettingsModal && (
+          <div className="modal-overlay">
+            <div className="settings-modal">
+              <h3>Customize Dashboard</h3>
+              <div>
+                <br></br>
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.doughnut || false}
+                  onChange={() => handleToggleChart("doughnut")}
+                />
+                Status Breakdown
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.treemapChart || false}
+                  onChange={() => handleToggleChart("treemapChart")}
+                />
+                Indident Breakdown Treemap
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.radarChart || false}
+                  onChange={() => handleToggleChart("radarChart")}
+                />
+                Incident Distribution by Category and SBU
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.pie || false}
+                  onChange={() => handleToggleChart("pie")}
+                />
+                Indidents by Elapsed Time
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.longestOpen || false}
+                  onChange={() => handleToggleChart("longestOpen")}
+                />
+                Top 10 Longest Open Incident
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.topPriority || false}
+                  onChange={() => handleToggleChart("topPriority")}
+                />
+                Top 10 Priority Incidents
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.newIncident || false}
+                  onChange={() => handleToggleChart("newIncident")}
+                />
+                5 New Incidents
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.incidentsOverTime || false}
+                  onChange={() => handleToggleChart("incidentsOverTime")}
+                />
+                Incidents Over Time
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.incidentPerSbu || false}
+                  onChange={() => handleToggleChart("incidentPerSbu")}
+                />
+                Incidents per SBU
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={visibleCharts?.incidentPerCategory || false}
+                  onChange={() => handleToggleChart("incidentPerCategory")}
+                />
+                Incidents per Category
+              </label>
+              <button onClick={() => setShowSettingsModal(false)}>Close</button>
+            </div>
+          </div>
+        )}
 
-<div className="charts">
+        <div className="charts">
           {visibleCharts.doughnut && (
-            <div className="chart">
+            <div
+              className="chart"
+              onClick={() => yesOpenModal("statusBreakdown")}
+            >
               <h4>Status Breakdown</h4>
               <Doughnut data={doughnutData} options={doughnutOptions} />
             </div>
           )}
           {visibleCharts.treemapChart && (
-            <div className="chart full-width">
+            <div
+              className="chart full-width"
+              onClick={() => yesOpenModal("incidentBreakdownTreemap")}
+            >
               <h4>Incident Breakdown Treemap</h4>
               <HighchartsReact
                 highcharts={Highcharts}
@@ -959,7 +979,10 @@ const getRecentIncidents = (insidenList, topCount = 10) => {
             </div>
           )}
           {visibleCharts.radarChart && (
-            <div className="chart full-width">
+            <div
+              className="chart full-width"
+              onClick={() => yesOpenModal("incidentDistribution")}
+            >
               <h4>Incident Distribution by Category and SBU</h4>
               <div className="sbu-dropdown">
                 <label>Select SBU: </label>
@@ -977,148 +1000,233 @@ const getRecentIncidents = (insidenList, topCount = 10) => {
           )}
 
           {visibleCharts.pie && (
-            <div className="chart">
+            <div
+              className="chart"
+              onClick={() => yesOpenModal("incidentsElapsedTime")}
+            >
               <h4>Incidents by Elapsed Time</h4>
               <Pie data={timePieData} options={timePieOptions} />
             </div>
           )}
           {visibleCharts.longestOpen && (
-          <div className={`chart chart-large`}>
-            <div className="top-lists"></div>
-            
-            <div className="longest-open-list">
-              <h4>Top 10 Longest Open Incidents</h4>
-              <ul>
-                {longestOpenIncidents.map((incident, index) => (
-                  <li
-                    key={index}
-                    onClick={() => openModalForIncident(incident)}
-                  >
-                    <strong>{incident.idInsiden}</strong>: {incident.deskripsi}
-                    (Elapsed Time: {formatElapsedTime(incident.elapsedTime)})
-                  </li>
-                ))}
-              </ul>
-            </div>
-          
-            </div>
-            )}
-            {visibleCharts.topPriority && (
-          <div className={`chart chart-large`}>
-            <div className="top-lists">
-            
-              <div className="top-priority-list">
-                <h4>Top 10 Priority Incidents</h4>
+            <div className={`chart chart-large`}>
+              <div className="top-lists"></div>
+
+              <div className="longest-open-list">
+                <h4>Top 10 Longest Open Incidents</h4>
                 <ul>
-                  {topPriorityIncidents.map((incident, index) => (
+                  {longestOpenIncidents.map((incident, index) => (
                     <li
                       key={index}
                       onClick={() => openModalForIncident(incident)}
                     >
                       <strong>{incident.idInsiden}</strong>:{" "}
-                      {incident.deskripsi} (Priority: {incident.priority})
+                      {incident.deskripsi}
+                      (Elapsed Time: {formatElapsedTime(incident.elapsedTime)})
                     </li>
                   ))}
                 </ul>
               </div>
-              
             </div>
-          </div>
+          )}
+          {visibleCharts.topPriority && (
+            <div className={`chart chart-large`}>
+              <div className="top-lists">
+                <div className="top-priority-list">
+                  <h4>Top 10 Priority Incidents</h4>
+                  <ul>
+                    {topPriorityIncidents.map((incident, index) => (
+                      <li
+                        key={index}
+                        onClick={() => openModalForIncident(incident)}
+                      >
+                        <strong>{incident.idInsiden}</strong>:{" "}
+                        {incident.deskripsi} (Priority: {incident.priority})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
           )}
           {visibleCharts.newIncident && (
-          <div className="chart full-width">
-          
-          <div className="recent-incidents">
-          
-
-        <h3>5 New Incidents</h3>
-        <ul>
-          {recentIncidents.map((incident) => (
-            <li
-              key={incident.idInsiden}
-              onClick={() => openModalForIncident(incident)} // Memungkinkan klik untuk membuka detail
+            <div className="chart full-width">
+              <div className="recent-incidents">
+                <h3>5 New Incidents</h3>
+                <ul>
+                  {recentIncidents.map((incident) => (
+                    <li
+                      key={incident.idInsiden}
+                      onClick={() => openModalForIncident(incident)} // Memungkinkan klik untuk membuka detail
+                    >
+                      {incident.deskripsi} -{" "}
+                      {new Date(incident.tanggalSubmit).toLocaleDateString()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+          {visibleCharts.incidentsOverTime && (
+            <div
+              className="chart chart-large"
+              onClick={() => yesOpenModal("incidentsOverTime")} // Pass 'incidentsOverTime' as chartType
             >
-              {incident.deskripsi} -{" "}
-              {new Date(incident.tanggalSubmit).toLocaleDateString()}
-            </li>
-          ))}
-        </ul>
-        
-      </div>
-        
-      </div>
-      )}
-      {visibleCharts.incidentsOverTime && (
-      <div className={`chart chart-large`}>
-            <h4>Incidents Over Time</h4>
-            <Line data={lineChartData} options={lineChartOptions} />
-          </div>
-      )}
-      {visibleCharts.incidentPerSbu && (
-          <div className={`chart chart-large`}>
-            <h4>Incidents per SBU (Open, Closed, Re Open)</h4>
-            <Bar data={sbuGroupedBarData} options={sbuGroupedBarOptions} />
-          </div>
-      )}
-      {visibleCharts.incidentPerCategory && (
-          <div className={`chart chart-large`}>
-            <h4>
-              Incidents per Category (Backbone, Super Backbone, Distribusi,
-              Access)
-            </h4>
-            <Bar
-              data={categoryStackedBarData}
-              options={categoryStackedBarOptions}
-            />
-          </div>
-      )}
-         
-
-          {visibleCharts.paretoChart && (
-            <div className="chart chart-large">
-              <h4>Pareto Chart of Incident Categories</h4>
-              <Bar data={paretoChartData} options={paretoChartOptions} />
+              <h4>Incidents Over Time</h4>
+              <Line data={lineChartData} options={lineChartOptions} />
+            </div>
+          )}
+          {visibleCharts.incidentPerSbu && (
+            <div
+              className="chart chart-large"
+              onClick={() => yesOpenModal("incidentPerSbu")}
+            >
+              <h4>Incidents per SBU (Open, Closed, ReOpen)</h4>
+              <Bar data={sbuGroupedBarData} options={sbuGroupedBarOptions} />
+            </div>
+          )}
+          {visibleCharts.incidentPerCategory && (
+            <div
+              className="chart chart-large"
+              onClick={() => yesOpenModal("incidentPerCategory")}
+            >
+              <h4>
+                Incidents per Category (Backbone, Super Backbone, Distribusi,
+                Access)
+              </h4>
+              <Bar
+                data={categoryStackedBarData}
+                options={categoryStackedBarOptions}
+              />
             </div>
           )}
 
-{isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <button className="modal-close" onClick={closeModal}>
-              ×
-            </button>
-            <h2>{modalTitle}</h2>
-            <div className="modal-scrollable">
-              <ul>
-                {filteredIncidents.map((insiden, index) => (
-                  <li key={index}>
-                    ID: {insiden.idInsiden} | Status: {insiden.status} |
-                    {/* Only show short description if full description is not available */}
-                    {!fullDescription && (
-                      <>Description: {insiden.deskripsi}</>
-                    )}
-                  </li>
-                ))}
-              </ul>
-              {fullDescription && ( // Only display if fullDescription is set
-  <div>
-    <strong>Full Description:</strong>
-    <p>{filteredIncidents[0]?.fullDeskripsi}</p> {/* Display the full description here */}
-  </div>
-)}
+          {yesModalOpen && (
+            <div className="modal show" onClick={closeModal}>
+              <div
+                className="modal-content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Conditional Rendering of Active Chart */}
+                {activeChart === "incidentsOverTime" && (
+                  <>
+                    <h4>Incidents Over Time</h4>
+                    <Line data={lineChartData} options={lineChartOptions} />
+                  </>
+                )}
 
+                {activeChart === "incidentPerSbu" && (
+                  <>
+                    <h4>Incidents per SBU (Open, Closed, ReOpen)</h4>
+                    <Bar
+                      data={sbuGroupedBarData}
+                      options={sbuGroupedBarOptions}
+                    />
+                  </>
+                )}
+
+                {activeChart === "incidentPerCategory" && (
+                  <>
+                    <h4>
+                      Incidents per Category (Backbone, Super Backbone,
+                      Distribusi, Access)
+                    </h4>
+                    <Bar
+                      data={categoryStackedBarData}
+                      options={categoryStackedBarOptions}
+                    />
+                  </>
+                )}
+                {activeChart === "statusBreakdown" && (
+                  <>
+                    <h4>Status Breakdown</h4>
+                    <Doughnut data={doughnutData} options={doughnutOptions} />
+                  </>
+                )}
+                {activeChart === "incidentBreakdownTreemap" && (
+                  <>
+                    <h4>Incident Breakdown Treemap</h4>
+                    <HighchartsReact
+                      highcharts={Highcharts}
+                      options={treemapChartOptions}
+                    />
+                  </>
+                )}
+                {activeChart === "incidentElapsedTime" && (
+                  <>
+                    <h4>Incidents by Elapsed Time</h4>
+                    <Pie data={timePieData} options={timePieOptions} />
+                  </>
+                )}
+                {activeChart === "incidentDistribution" && (
+                  <>
+                    <h4>Incident Distribution by Category and SBU</h4>
+                    <div className="sbu-dropdown">
+                      <label>Select SBU: </label>
+                      <select value={selectedSbu} onChange={handleSbuSelection}>
+                        <option value="All">All</option>
+                        {Object.keys(sbuCategoryData).map((sbu) => (
+                          <option key={sbu} value={sbu}>
+                            {sbu}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Radar data={radarChartData} options={radarChartOptions} />
+                  </>
+                )}
+
+<button
+  onClick={(e) => {
+    e.stopPropagation(); 
+    closeModal(); 
+  }}
+>
+  Close
+</button>
+
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          )}
 
-
+          {isModalOpen && (
+            <div className="modal-overlay">
+              <div className="modal-content">
+                <button className="modal-close"onClick={(e) => {
+    e.stopPropagation(); 
+    closeModal(); 
+  }}
+>
+                  ×
+                </button>
+                <h2>{modalTitle}</h2>
+                <div className="modal-scrollable">
+                  <ul>
+                    {filteredIncidents.map((insiden, index) => (
+                      <li key={index}>
+                        ID: {insiden.idInsiden} | Status: {insiden.status} |
+                        {/* Only show short description if full description is not available */}
+                        {!fullDescription && (
+                          <>Description: {insiden.deskripsi}</>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  {fullDescription && ( // Only display if fullDescription is set
+                    <div>
+                      <strong>Full Description:</strong>
+                      <p>{filteredIncidents[0]?.fullDeskripsi}</p>{" "}
+                      {/* Display the full description here */}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
     </div>
   );
 };
 
-    
 export default Dashboard;

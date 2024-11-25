@@ -67,13 +67,13 @@ const App = () => {
                 <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
             )}
 
-            <div className="main-content">
+            <div className="app-main-content">
                 {/* Always show Header */}
                 <Header toggleSidebar={toggleSidebar} />
                 
                 {/* Show loading indicator when fetching data */}
                 {loading ? (
-                    <div className="loading-indicator">Loading...</div>
+                    <div className="app-loading-indicator">Loading...</div>
                 ) : (
                     
                     <Routes>
@@ -87,9 +87,10 @@ const App = () => {
                             element={<ProtectedRoute><FormInsiden getInsidens={getInsidens} /></ProtectedRoute>} 
                         />
                         <Route 
-                            path="/insiden-table" 
-                            element={<ProtectedRoute><InsidenTable setChartData={setChartData} getInsidens={getInsidens} /></ProtectedRoute>} 
-                        />
+    path="/insiden-table" 
+    element={<ProtectedRoute requiredRole="admin"><InsidenTable setChartData={setChartData} getInsidens={getInsidens} /></ProtectedRoute>} 
+/>
+
                         <Route 
                             path="/map-insiden" 
                             element={<ProtectedRoute><MapIndonesia /></ProtectedRoute>} 

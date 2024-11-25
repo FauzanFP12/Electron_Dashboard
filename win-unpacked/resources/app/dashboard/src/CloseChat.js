@@ -152,13 +152,24 @@ const Chat = () => {
         const date = new Date(dateString);
         return date.toLocaleString(); // Adjust format as needed
     };
+    const user = JSON.parse(localStorage.getItem("user"));
+    const fullName = user?.fullName;
+    const role = localStorage.getItem("role");
 
     return (
         <div className="chat-container">
             <div className="ticket-list">
         
                 <h3>Closed Tickets</h3>
-                {closedTickets.map((ticket) => (
+                {closedTickets
+        .filter((ticket) => {
+          // Jika admin, tampilkan semua tiket
+          if (role === "admin") return true;
+
+          // Jika bukan admin, hanya tampilkan tiket yang dibuat oleh pengguna login
+          return ticket.createdBy?.fullName === fullName;
+        })
+                .map((ticket) => (
                     <div
                         key={ticket._id}
                         className={`ticket-item ${selectedTicket?._id === ticket._id ? 'selected' : ''}`}
