@@ -114,7 +114,24 @@ const PetaIndonesia = () => {
 
     updateMapData();
   }, [statusFilter, allInsidens]);
+  const formatDateUTCS = (dateString) => {
+    if (!dateString) return "";
 
+    // Convert the date to the user's local time by adding 7 hours
+    const date = new Date(dateString);
+    const gmt7Date = new Date(date.getTime() + 0 * 60 * 60 * 1000); // Adjust to GMT+7
+
+    // Format the date to 'id-ID' locale in GMT+7 without converting back to UTC
+    return gmt7Date.toLocaleString("id-ID", {
+      month: "numeric",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false, // To ensure 24-hour format
+    });
+  };
   const handleProvinsiClick = (provinsi) => {
     const insidenTerkait = allInsidens.filter((insiden) =>
       provinsi === namaKeKodeProvinsi[insiden.sbu] &&
@@ -138,7 +155,15 @@ const PetaIndonesia = () => {
     { headerName: 'Status', field: 'status' },
     { headerName: 'SBU', field: 'sbu' },
     { headerName: 'Kategori', field: 'pilihan' },
-    { headerName: 'Prioritas', field: 'priority' }
+    { headerName: 'Prioritas', field: 'priority' },
+    {
+      field: "tanggalSubmit",
+      headerName: "Start Incident",
+      valueFormatter: (params) => formatDateUTCS(params.value),
+      filter: "agDateColumnFilter",
+      sortable: true,
+    },
+   
   ];
 
   const options = {
