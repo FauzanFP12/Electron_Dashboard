@@ -166,4 +166,38 @@
   .admin-assignment button:hover {
     background-color: #0056b3;
   }
+  /* General styles for the header */
+.h22 {
+    font-size: 24px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 20px;
+    text-align: center;
+    
+}
+
+/* Style for the export button aligned to the right */
+.export2 {
+    background-color: #4CAF50; /* Green */
+    color: white;
+    font-size: 16px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 15px;
+    transition: background-color 0.3s ease;
+    display: block; /* Makes the button a block-level element */
+    margin-left: auto; /* Align the button to the right */
+    margin-top: 10px; /* Adds some space from the top */
+}
+
+/* Hover effect for the export button */
+.export2:hover {
+    background-color: #45a049;
+    text-align: center; /* Ensures text inside button is centered */
+}
+
+
+
   

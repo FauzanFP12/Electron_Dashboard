@@ -11,7 +11,7 @@ const Header = ({ toggleSidebar }) => {
   useEffect(() => {
     try {
       // Retrieve user data from localStorage
-      const storedUser = localStorage.getItem('user');
+      const storedUser = sessionStorage.getItem('user');
       if (storedUser) {
         setUser(JSON.parse(storedUser)); // Parse and set the user data
       }
@@ -26,8 +26,8 @@ const Header = ({ toggleSidebar }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token'); // Remove the token
-    localStorage.removeItem('user'); // Remove the user data
+    sessionStorage.removeItem('token'); // Remove the token
+    sessionStorage.removeItem('user'); // Remove the user data
     toast.success('Logout successful');  // Display success toast notification
     window.location.reload(); // Refresh the page
     navigate('/login'); // Redirect to login page

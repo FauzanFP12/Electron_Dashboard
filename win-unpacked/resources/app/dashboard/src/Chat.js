@@ -124,7 +124,7 @@ const Chat = () => {
       const response = await axios.get(
         `${process.env.REACT_APP_API_URL}/api/helpdesk-tickets/${ticketId}/chat`,
         {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         }
       );
       setChatMessages((prevChats) => ({
@@ -201,7 +201,7 @@ const Chat = () => {
     if (!newMessage.trim() && (!selectedFile || selectedFile.length === 0))
       return;
 
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = JSON.parse(sessionStorage.getItem("user"));
     const fullName = user?.fullName;
 
     if (!fullName) {
@@ -215,14 +215,17 @@ const Chat = () => {
       if (selectedFile && selectedFile.length > 0) {
         for (const file of selectedFile) {
           const formData = new FormData();
-          formData.append("file", file);
-          formData.append("ticketId", selectedTicket._id);
-
+          formData.append("file", file); // Tambahkan file ke FormData
+          formData.append("ticketId", selectedTicket._id); // Tambahkan ticketId
+          formData.append("fullName", fullName); // Tambahkan fullName
+      
           const fileResponse = await axios.post(
             `${process.env.REACT_APP_API_URL}/api/upload`,
             formData,
             {
-              headers: { "Content-Type": "multipart/form-data" },
+              headers: { "Content-Type": "multipart/form-data",
+                "full-name": fullName, 
+              },
             }
           );
 
@@ -254,7 +257,7 @@ const Chat = () => {
 
   // Di dalam renderMessages, tambahkan handler untuk membuka modal
   const renderMessages = (messages) => {
-    const currentUser = JSON.parse(localStorage.getItem("user"))?.fullName; // Get logged-in user
+    const currentUser = JSON.parse(sessionStorage.getItem("user"))?.fullName; // Get logged-in user
 
     return messages.map((msg, index) => {
       const file = msg.fileUrl || null;
@@ -284,7 +287,7 @@ const Chat = () => {
                 ) : (
                   <a href={file} target="_blank" rel="noopener noreferrer">
                     <button className="file-download-btn">
-                      Download Attachment
+                      View Attachment
                     </button>
                   </a>
                 )}
@@ -331,9 +334,9 @@ const Chat = () => {
       }
     }
   };
-  const user = JSON.parse(localStorage.getItem("user"));
+  const user = JSON.parse(sessionStorage.getItem("user"));
   const fullName = user?.fullName;
-  const role = localStorage.getItem("role");
+  const role = sessionStorage.getItem("role");
   
 
 
@@ -452,13 +455,13 @@ const Chat = () => {
               <strong>Created By:</strong> {selectedTicket.createdBy?.fullName}
             </p>{" "}
             <p>
-              <strong>Subject:</strong> {selectedTicket.subject}
+              <strong>IP-DA:</strong> {selectedTicket.subject}
             </p>
             <p>
               <strong>Status:</strong> {selectedTicket.status}
             </p>
             <p>
-              <strong>Description:</strong> {selectedTicket.description}
+              <strong>Subject:</strong> {selectedTicket.description}
             </p>
             <p>
               <strong>Created At:</strong>{" "}

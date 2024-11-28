@@ -147,6 +147,23 @@
     justify-content: space-between;
 }
 
+.selector {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.frame-selector {
+    margin-top: 0px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+
 .time-frame-selector button {
     background-color: #3498db;
     color: white;

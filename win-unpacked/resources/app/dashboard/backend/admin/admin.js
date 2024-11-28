@@ -16,12 +16,12 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 })
   .then(async () => {
-    const hashedPassword = bcrypt.hashSync('user1', 10);
+    const hashedPassword = bcrypt.hashSync('user11', 10);
     const newUser = new User({
-      username: 'user',
+      username: 'user1',
       password: hashedPassword,
       role: 'user',
-      fullName: 'User',
+      fullName: 'User1',
     });
     await newUser.save();
     console.log('User created successfully');

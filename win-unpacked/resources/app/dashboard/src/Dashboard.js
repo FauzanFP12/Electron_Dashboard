@@ -820,7 +820,7 @@ const Dashboard = ({ insidenList = [] }) => {
           >
             This Month
           </button>
-          <div>
+          <div className="selector">
             <input
               type="date"
               value={customStartDate}
@@ -833,7 +833,7 @@ const Dashboard = ({ insidenList = [] }) => {
               onChange={(e) => setCustomEndDate(e.target.value)}
               placeholder="End Date"
             />
-            <button onClick={() => setTimeFrame("custom")}>
+            <button class="frame-selector" onClick={() => setTimeFrame("custom")}>
               Filter by Date Range
             </button>
           </div>

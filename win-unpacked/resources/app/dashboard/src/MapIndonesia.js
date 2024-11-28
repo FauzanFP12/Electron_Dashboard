@@ -53,17 +53,29 @@ const PetaIndonesia = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // Filter for map
   const [statusFilterTable, setStatusFilterTable] = useState('all'); // Filter for table
   const [sbuFilter, setSbuFilter] = useState('all'); // Filter for SBU
+  const [totalIncidents, setTotalIncidents] = useState({ open: 0, closed: 0, total: 0 }); // Store total incident counts
+
+  // Fetch data from API
+  const fetchData = async () => {
+    try {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/insidens`);
+      setAllInsidens(response.data);
+    } catch (error) {
+      console.error('Gagal mengambil data insiden:', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/insidens`);
-        setAllInsidens(response.data);
-      } catch (error) {
-        console.error('Gagal mengambil data insiden:', error);
-      }
-    };
+    // Initial fetch when the component is mounted
     fetchData();
+
+    // Set interval to fetch data every 5 minutes (300000 ms)
+    const intervalId = setInterval(() => {
+      fetchData();
+    }, 10000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, []);
 
   useEffect(() => {
@@ -89,7 +101,17 @@ const PetaIndonesia = () => {
       );
 
       setDataPeta(provinsiData);
+
+      // Update the total incident counts
+      const openIncidents = filteredInsidens.filter(insiden => insiden.status === 'Open').length;
+      const closedIncidents = filteredInsidens.filter(insiden => insiden.status === 'Closed').length;
+      setTotalIncidents({
+        open: openIncidents,
+        closed: closedIncidents,
+        total: filteredInsidens.length
+      });
     };
+
     updateMapData();
   }, [statusFilter, allInsidens]);
 
@@ -112,7 +134,7 @@ const PetaIndonesia = () => {
 
   const columnDefs = [
     { headerName: 'ID Insiden', field: 'idInsiden' },
-    { headerName: 'Deskripsi', field: 'deskripsi',  autoHeight: true,flex:3},
+    { headerName: 'Deskripsi', field: 'deskripsi',  autoHeight: true, flex: 3 },
     { headerName: 'Status', field: 'status' },
     { headerName: 'SBU', field: 'sbu' },
     { headerName: 'Kategori', field: 'pilihan' },
@@ -138,6 +160,17 @@ const PetaIndonesia = () => {
             },
           },
         },
+        dataLabels: {
+          enabled: true, // Enable data labels
+          format: '{point.value}', // Show the number of incidents
+          style: {
+            color: 'black', // Label color
+            fontSize: '14px', // Font size for the labels
+            fontWeight: 'bold', // Bold font for the labels
+          },
+          align: 'center', // Center the text on the region
+          verticalAlign: 'middle', // Center the text vertically
+        },
       },
     ],
   };
@@ -152,23 +185,48 @@ const PetaIndonesia = () => {
         containerProps={{ style: { height: '600px', width: '100%' } }}
       />
 
-      {selectedProvinsi && (
+      {/* Only show the total incidents table if no region is selected */}
+      {['all', 'Open', 'Closed'].includes(statusFilter) && !selectedProvinsi && (
         <div style={{ marginTop: '20px' }}>
-          <h2 className="h2">Data Insiden di Provinsi: {selectedProvinsi}</h2>
-
-          <div className="ag-theme-alpine" style={{ height: 400, width: '100%' }}>
-            <AgGridReact
-              columnDefs={columnDefs}
-              rowData={insidenPerProvinsi}
-              pagination={true}
-              paginationPageSize={10}
-              domLayout='autoHeight'
-            />
-          </div>
+          <h2>Total Insiden</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Jumlah</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Open</td>
+                <td>{totalIncidents.open}</td>
+              </tr>
+              <tr>
+                <td>Closed</td>
+                <td>{totalIncidents.closed}</td>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td>{totalIncidents.total}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Combined Filter Area at Bottom Right */}
+      {/* Show ag-Grid table with incidents for a specific province */}
+      {selectedProvinsi && (
+        <div className="ag-theme-alpine" style={{ height: '400px', width: '100%' }}>
+          <AgGridReact
+            columnDefs={columnDefs}
+            rowData={insidenPerProvinsi}
+            pagination={true}
+            paginationPageSize={10}
+          />
+        </div>
+      )}
+
+      {/* Status Filter Buttons */}
       <div style={{ position: 'fixed', bottom: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {['all', 'Open', 'Closed'].map((filter) => (
           <button
@@ -183,7 +241,7 @@ const PetaIndonesia = () => {
               cursor: 'pointer',
             }}
           >
-            Tampilkan {filter.charAt(0).toUpperCase() + filter.slice(1)}
+             {filter.charAt(0).toUpperCase() + filter.slice(1)}
           </button>
         ))}
       </div>

@@ -17,11 +17,11 @@ const Login = () => {
       const { accessToken, role, fullName } = response.data;
 
       // Save token and role to local storage for future use
-      localStorage.setItem('token', accessToken);
-      localStorage.setItem('role', role);
+      sessionStorage.setItem('token', accessToken);
+      sessionStorage.setItem('role', role);
 
       // Save user details (including fullName) to localStorage
-      localStorage.setItem('user', JSON.stringify({
+      sessionStorage.setItem('user', JSON.stringify({
         username: username,
         fullName: fullName,
       }));
@@ -35,7 +35,7 @@ const Login = () => {
           navigate('/');
           window.location.reload(); // Refresh the page
         } else if (role === 'user') {
-          navigate('/');
+          navigate('/help-desk/create');
           window.location.reload(); // Refresh the page
         } else {
           navigate('/dashboard'); // Default fallback for other roles

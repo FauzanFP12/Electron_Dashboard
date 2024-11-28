@@ -8,19 +8,19 @@ export const UserProvider = ({ children }) => {
 
     useEffect(() => {
         // Coba ambil user dari localStorage saat komponen pertama kali dimuat
-        const storedUser = localStorage.getItem('user');
+        const storedUser = sessionStorage.getItem('user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
     }, []);
 
     const login = (userData) => {
-        localStorage.setItem('user', JSON.stringify(userData)); // Simpan ke localStorage
+        sessionStorage.setItem('user', JSON.stringify(userData)); // Simpan ke localStorage
         setUser(userData); // Set user di state
     };
 
     const logout = () => {
-        localStorage.removeItem('user'); // Hapus user dari localStorage
+        sessionStorage.removeItem('user'); // Hapus user dari localStorage
         setUser(null); // Set user ke null
     };
 

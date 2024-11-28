@@ -414,4 +414,12 @@ button:hover {
     background-color: transparent;
   } 
 
+  .new-message-notification {
+    background-color: #f44336;
+    color: white;
+    border-radius: 5px;
+    padding: 0 5px;
+    margin-left: 10px;
+    font-size: 12px;
+  }
   

@@ -84,7 +84,7 @@ const Chat = () => {
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpdesk-tickets/${ticketId}/chat`, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    Authorization: `Bearer ${sessionStorage.getItem('token')}`,
                 },
             });
             setChatMessages((prevChats) => ({
@@ -152,9 +152,9 @@ const Chat = () => {
         const date = new Date(dateString);
         return date.toLocaleString(); // Adjust format as needed
     };
-    const user = JSON.parse(localStorage.getItem("user"));
+    const user = JSON.parse(sessionStorage.getItem("user"));
     const fullName = user?.fullName;
-    const role = localStorage.getItem("role");
+    const role = sessionStorage.getItem("role");
 
     return (
         <div className="chat-container">
@@ -190,10 +190,11 @@ const Chat = () => {
                                     <div key={index} className={`message ${msg.sender === 'User' ? 'from-user' : 'from-support'}`}>
                                         <strong>{msg.sender}:</strong> {msg.message}
                                         <div className="message-meta">
-                                            <span className="timestamp">{formatDate(msg.createdAt)}</span>
+                                            
                                             {msg.fileUrl && (
                                                 <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">View Attachment</a>
                                             )}
+                                            <span className="timestamp">{formatDate(msg.createdAt)}</span>
                                         </div>
                                     </div>
                                 ))
@@ -212,9 +213,9 @@ const Chat = () => {
                 {selectedTicket ? (
                     <>
                         <h3>Details</h3>
-                        <p><strong>Subject:</strong> {selectedTicket.subject}</p>
+                        <p><strong>IP-DA:</strong> {selectedTicket.subject}</p>
                         <p><strong>Status:</strong> {selectedTicket.status}</p>
-                        <p><strong>Description:</strong> {selectedTicket.description}</p>
+                        <p><strong>Subject:</strong> {selectedTicket.description}</p>
                         <p><strong>Created At:</strong> {formatDate(selectedTicket.createdAt)}</p>
                         
                     </>

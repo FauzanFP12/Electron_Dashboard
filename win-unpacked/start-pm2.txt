@@ -1,0 +1,9 @@
+@echo off
+
+start "" /min pm2 serve "D:\Magang\Dashboard\electron1\dist\win-unpacked\resources\app\dashboard\build" 3000 --name "frontend" --spa
+
+
+start "" /min pm2 start "D:\Magang\Dashboard\electron1\dist\win-unpacked\resources\app\dashboard\backend\server.js" --name "backend"
+
+
+pm2 save

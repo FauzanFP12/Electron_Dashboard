@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import EmojiPicker from 'emoji-picker-react';
+import * as XLSX from 'xlsx'; // Import library untuk export ke Excel
 import './Chat.css';
 
 const Chat = ({ selectedTicket }) => {
-    const [chatMessages, setChatMessages] = useState({});
-    const [newMessage, setNewMessage] = useState('');
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-    const [selectedFile, setSelectedFile] = useState(null);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [modalImage, setModalImage] = useState(null);
+    
+    const navigate = useNavigate();
+        
 
     useEffect(() => {
         if (selectedTicket) {
@@ -19,45 +21,89 @@ const Chat = ({ selectedTicket }) => {
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/helpdesk-tickets/${ticketId}/chat`, {
                 headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    Authorization: `Bearer ${sessionStorage.getItem('token')}`,
                 },
             });
             setChatMessages(response.data);
         } catch (error) {
-            console.error("Error fetching chat messages:", error);
+            console.error('Error fetching chat messages:', error);
         }
     };
 
-    const sendChatMessage = async () => {
-        if (!newMessage.trim() || !selectedTicket) return;
+    const goBack = () => {
+        navigate('/helpdesk/view'); // First navigation to '/help-desk/view'
+        setTimeout(() => {
+            navigate('/help-desk/view'); // Second navigation to '/help-desk/view' after a small delay
+        }, 1); // 500 ms delay (adjust as needed)
+    };
+    
 
-        try {
-            const response = await axios.post(
-                `${process.env.REACT_APP_API_URL}/api/helpdesk-tickets/${selectedTicket._id}/chat`,
-                {
-                    sender: "User",
-                    message: newMessage,
-                }
+    const exportToExcel = () => {
+        if (!chatMessages.length) {
+            alert('No chat messages to export.');
+            return;
+        }
+
+        // Format data untuk Excel
+        const formattedData = chatMessages.map((msg, index) => ({
+            'No.': index + 1,
+            Sender: msg.sender,
+            Message: msg.message,
+            Timestamp: new Date(msg.createdAt).toLocaleString(),
+            
+            Attachment: msg.fileUrl || 'None',
+        }));
+
+        // Membuat worksheet dan workbook
+        const worksheet = XLSX.utils.json_to_sheet(formattedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Chat Messages');
+
+        // Mengunduh file
+        XLSX.writeFile(workbook, `Chat_${selectedTicket.subject || 'Ticket'}.xlsx`);
+    };
+
+    const openImageModal = (fileUrl) => {
+        setModalImage(fileUrl);
+    };
+
+    const closeModal = () => {
+        setModalImage(null);
+    };
+
+    const renderMessages = () => {
+        return chatMessages.map((msg, index) => {
+            const isImage = msg.fileUrl?.match(/\.(jpeg|jpg|gif|png)$/i);
+            return (
+                <div
+                    key={index}
+                    className={`message ${msg.sender === 'User' ? 'from-user' : 'from-support'}`}
+                >
+                    <strong>{msg.sender}:</strong> {msg.message}
+                    <div className="message-meta">
+                        {msg.fileUrl && (
+                            <div className="file-attachment">
+                                {isImage ? (
+                                    <img
+                                        src={msg.fileUrl}
+                                        alt="attachment"
+                                        className="file-image"
+                                        onClick={() => openImageModal(msg.fileUrl)}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                ) : (
+                                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">
+                                        <button className="file-download-btn">View Attachment</button>
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                        <span className="timestamp">{new Date(msg.createdAt).toLocaleString()}</span>
+                        
+                    </div>
+                </div>
             );
-
-            if (response.status === 200) {
-                fetchChatMessages(selectedTicket._id);
-                setNewMessage('');
-            }
-        } catch (error) {
-            console.error("Error sending message:", error);
-        }
-    };
-
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter') {
-            sendChatMessage();
-        }
-    };
-
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleString(); // Adjust format as needed
+        });
     };
 
     return (
@@ -65,31 +111,41 @@ const Chat = ({ selectedTicket }) => {
             <div className="chat-area">
                 <h3>Ticket Chat</h3>
                 <div className="chat-messages">
-                    {chatMessages.length > 0 ? (
-                        chatMessages.map((msg, index) => (
-                            <div key={index} className={`message ${msg.sender === 'User' ? 'from-user' : 'from-support'}`}>
-                                <strong>{msg.sender}:</strong> {msg.message}
-                                <div className="message-meta">
-                                    <span className="timestamp">{formatDate(msg.createdAt)}</span>
-                                    {msg.fileUrl && <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer">View Attachment</a>}
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p>No chat messages yet.</p>
-                    )}
+                    {chatMessages.length > 0 ? renderMessages() : <p>No chat messages yet.</p>}
                 </div>
-
-                <p></p>
             </div>
 
             <div className="ticket-details">
                 <h3>Details</h3>
-                <p><strong>Subject:</strong> {selectedTicket.subject}</p>
-                <p><strong>Status:</strong> {selectedTicket.status}</p>
-                <p><strong>Description:</strong> {selectedTicket.description}</p>
-                <p><strong>Created At:</strong> {formatDate(selectedTicket.createdAt)}</p>
+                <p>
+                    <strong>Subject:</strong> {selectedTicket.subject}
+                </p>
+                <p>
+                    <strong>Status:</strong> {selectedTicket.status}
+                </p>
+                <p>
+                    <strong>Description:</strong> {selectedTicket.description}
+                </p>
+                <p>
+                    <strong>Created At:</strong> {new Date(selectedTicket.createdAt).toLocaleString()}
+                </p>
+                <button onClick={exportToExcel} className="export-button">
+                    Export Chat to Excel
+                </button>
+                <div>
+         
+                <button onClick={() => goBack()}>Go Back</button>
+            {/* Chat implementation here */}
+        </div>
             </div>
+
+            {modalImage && (
+                <div className="modal-overlay" onClick={closeModal}>
+                    <div className="modal-content">
+                        <img src={modalImage} alt="attachment preview" />
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

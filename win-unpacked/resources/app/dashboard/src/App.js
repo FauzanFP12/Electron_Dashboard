@@ -16,6 +16,9 @@ import CloseChat from './CloseChat';
 import HelpDesk from './HelpDesk';
 import ProtectedRoute from './ProtectedRoutes';
 
+import ChatView from './ChatView';
+import CloseChatView from './CloseChatView';
+
 
 
 const App = () => {
@@ -79,12 +82,12 @@ const App = () => {
                     <Routes>
                         <Route 
                             path="/" 
-                            element={<ProtectedRoute><Dashboard insidenList={insidenList} chartData={chartData} /></ProtectedRoute>} 
+                            element={<ProtectedRoute requiredRole="admin"><Dashboard insidenList={insidenList} chartData={chartData} /></ProtectedRoute>} 
                             
                         />
                         <Route 
                             path="/form-insiden" 
-                            element={<ProtectedRoute><FormInsiden getInsidens={getInsidens} /></ProtectedRoute>} 
+                            element={<ProtectedRoute requiredRole="admin"><FormInsiden getInsidens={getInsidens} /></ProtectedRoute>} 
                         />
                         <Route 
     path="/insiden-table" 
@@ -120,6 +123,9 @@ const App = () => {
                             element={<ProtectedRoute><CloseChat/></ProtectedRoute>} 
                             
                         />
+                         <Route path="/" element={<General />} />
+        <Route path="/chat" element={<ChatView />} />
+        <Route path="/close-chat" element={<CloseChatView />} />
                        
                       
                     </Routes>

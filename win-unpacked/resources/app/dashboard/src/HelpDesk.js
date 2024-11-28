@@ -14,8 +14,8 @@ const HelpDesk = () => {
     const [viewChat, setViewChat] = useState(false);
 
     const navigate = useNavigate();
-    const loggedInUser = JSON.parse(localStorage.getItem('user'));
-    const role = localStorage.getItem('role');
+    const loggedInUser = JSON.parse(sessionStorage.getItem('user'));
+    const role = sessionStorage.getItem('role');
 
     useEffect(() => {
         fetchTickets();
@@ -107,7 +107,7 @@ const HelpDesk = () => {
                         type="text"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        placeholder="Subject"
+                        placeholder="IP-DA"
                     />
                     <textarea
                         className="custom-input1"

@@ -227,7 +227,7 @@ const InsidenTable = ({ setChartData }) => {
         });
         gridApi.refreshCells({ columns: ["elapsedTime"], rowNodes });
       }
-    }, 10000);
+    }, 20000);
 
     setElapsedTimeInterval(intervalId); // Save interval ID to state
 
@@ -1096,6 +1096,7 @@ const InsidenTable = ({ setChartData }) => {
             sortable: true,
             filter: true,
             resizable: true,
+            floatingFilter: false,
           }}
           pagination={true}
           paginationPageSize={20}

@@ -14,40 +14,55 @@ import insidenRoutes from './routes/insidenRoutes.js';
 import User from './models/User.js';
 import { fileURLToPath } from 'url';
 
+
 import HelpdeskTicket from './models/HelpdeskTicket.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
+app.use(cors());
+app.use(express.json());
 // Setup HTTP server and WebSocket
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://10.255.254.145:3000',
+    origin: process.env.FRONTEND_URL || 'http://10.255.254.189:3000',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   },
 });
 
-// WebSocket logic
+// WebSocket connection setup
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log(`User connected: ${socket.id}`);
 
+  // Listen for messages from the client
   socket.on('sendMessage', (data) => {
     console.log('Message received:', data);
-    io.emit('receiveMessage', data); // Broadcast to all connected clients
+
+    // You could also target specific rooms or sockets instead of broadcasting to everyone
+    io.emit('receiveMessage', {
+      message: data.message,
+      sender: data.sender,
+      timestamp: new Date(),
+    });
   });
 
+  // Optional: Listen for typing status (to show 'user is typing...')
+  socket.on('typing', (data) => {
+    console.log(`${data.sender} is typing...`);
+    socket.broadcast.emit('typing', { sender: data.sender });
+  });
+
+  // Handle socket disconnect
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log(`User disconnected: ${socket.id}`);
   });
 });
 
 // Middleware setup
-app.use(cors());
-app.use(express.json());
+
 
 // MongoDB connection
 mongoose
@@ -172,9 +187,9 @@ app.post('/api/upload', upload.fields([
     if (!ticket) return res.status(404).json({ message: 'Ticket not found' });
 
     // Ambil nama pengirim dari req.user (untuk autentikasi, pastikan req.user ada)
-    const sender = req.user?.fullName || 'System';  // Jika req.user tidak ada, gunakan 'System' sebagai fallback
-
-    // Persiapkan data file yang diupload
+    const fullName = req.headers["full-name"] || "Test"; // Ambil fullName dari header
+      
+    // Persiapkan dat afile yang diupload
     const filesData = (req.files['file'] || []).map((file) => ({
       filename: file.filename,
       path: `${process.env.BACKEND_URL}/uploads/${file.filename}`, // URL file yang diupload
@@ -193,7 +208,7 @@ app.post('/api/upload', upload.fields([
 
     // Siapkan pesan chat untuk ditambahkan ke ticket
     const chatMessage = {
-      sender,  // Ambil sender dari req.user atau gunakan fallback 'System'
+      sender: fullName,  // Ambil sender dari req.user atau gunakan fallback 'System'
       message: message || ' ',  // Set pesan default jika tidak ada
       fileUrl: filesData.length > 0 ? filesData[0].fileUrl : '', // Mengambil file URL pertama (jika ada)
       files: [...filesData, ...extraData], // Gabungkan semua file
@@ -240,5 +255,5 @@ app.get('/', (req, res) => {
 
 // Start the server and bind it to all interfaces
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://10.255.254.145:${PORT}`);
+  console.log(`Server running on ${PORT}`);
 });
